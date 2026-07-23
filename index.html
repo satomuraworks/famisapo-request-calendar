@@ -57,10 +57,10 @@
             <fieldset class="weekday-settings">
               <legend>定期利用曜日</legend>
               <div>
-                <label><input type="checkbox" name="regular-weekday" value="1" checked /> 月</label>
-                <label><input type="checkbox" name="regular-weekday" value="2" checked /> 火</label>
-                <label><input type="checkbox" name="regular-weekday" value="3" checked /> 水</label>
-                <label><input type="checkbox" name="regular-weekday" value="4" checked /> 木</label>
+                <label><input type="checkbox" name="regular-weekday" value="1" /> 月</label>
+                <label><input type="checkbox" name="regular-weekday" value="2" /> 火</label>
+                <label><input type="checkbox" name="regular-weekday" value="3" /> 水</label>
+                <label><input type="checkbox" name="regular-weekday" value="4" /> 木</label>
                 <label><input type="checkbox" name="regular-weekday" value="5" /> 金</label>
                 <label><input type="checkbox" name="regular-weekday" value="6" /> 土</label>
                 <label><input type="checkbox" name="regular-weekday" value="0" /> 日</label>
@@ -105,7 +105,8 @@
           <div class="price-breakdown-total"><span>合計</span><strong id="price-per-visit">800円</strong></div>
           <h3>月額概算</h3>
           <strong id="estimated-cost">0回 × 1,150円 = 0円</strong>
-          <small>確定額ではありません。</small>
+          <small class="estimate-notice">実際の料金は利用内容により異なります。</small>
+          <small>表示金額は予定内容をもとにした概算です。</small>
         </div>
       </section>
 
@@ -133,8 +134,8 @@
         <div id="image-preview-wrap" class="image-preview-wrap" hidden>
           <canvas id="image-canvas" width="1080" height="1350" aria-label="生成した送信用画像のプレビュー"></canvas>
           <div class="image-actions">
-            <button id="download-button" class="button secondary" type="button">PNG画像を保存</button>
-            <button id="share-button" class="button secondary" type="button" hidden>共有シートを開く</button>
+            <button id="download-button" class="button secondary icon-button" type="button"><span class="button-icon" aria-hidden="true">⇩</span><span>ダウンロード</span></button>
+            <button id="share-button" class="button secondary icon-button" type="button" hidden><span class="button-icon" aria-hidden="true">⤴</span><span>共有</span></button>
           </div>
         </div>
       </section>

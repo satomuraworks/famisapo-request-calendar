@@ -14,7 +14,7 @@ export const DEFAULT_USAGE_SETTINGS = Object.freeze({
   firstChildFee: 700,
   additionalChildFee: 350,
   transportFee: 100,
-  regularWeekdays: [1, 2, 3, 4],
+  regularWeekdays: [],
 });
 
 function normalizeNonNegativeInteger(value, fallback = 0) {
@@ -61,17 +61,10 @@ export function formatYen(amount) {
   return new Intl.NumberFormat("ja-JP").format(amount);
 }
 
-export function makeLineMessage(year, monthIndex, selectedDates, settings = DEFAULT_USAGE_SETTINGS) {
+export function makeLineMessage(year, monthIndex, selectedDates) {
   const dates = [...selectedDates].sort();
   if (!dates.length) return "依頼日を選択してください。";
-  const normalized = normalizeUsageSettings(settings);
-  const additionalCount = normalized.childrenCount - 1;
-  const breakdown = additionalCount
-    ? `${formatYen(normalized.firstChildFee)}円＋追加${additionalCount}人${formatYen(normalized.additionalChildFee)}円＋交通費${formatYen(normalized.transportFee)}円`
-    : `${formatYen(normalized.firstChildFee)}円＋交通費${formatYen(normalized.transportFee)}円`;
-  const perVisit = calculatePricePerVisit(normalized);
-  const estimate = calculateEstimate(dates.length, normalized);
-  return `${year}年${monthIndex + 1}月のファミサポ依頼日についてご連絡します。\n\n${dates.map((date) => formatJapaneseDate(date)).join("\n")}\n\n以上の${dates.length}日間をお願いいたします。\n子ども${normalized.childrenCount}人／1回あたり${formatYen(perVisit)}円\n内訳：${breakdown}\n月額概算：${formatYen(estimate)}円\n\n確認用の画像も添付します。\nご確認よろしくお願いいたします。`;
+  return `${year}年${monthIndex + 1}月のファミサポ依頼日についてご連絡します。\n\n${dates.map((date) => formatJapaneseDate(date)).join("\n")}\n\n以上の${dates.length}日間をお願いいたします。\n確認用の画像も添付します。\nご確認よろしくお願いいたします。`;
 }
 
 export function normalizeSendStatus(status) {

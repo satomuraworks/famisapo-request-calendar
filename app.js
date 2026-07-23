@@ -290,7 +290,7 @@ function updateConfirmation() {
   const settings = getCurrentUsageSettings();
   const perVisit = calculatePricePerVisit(settings);
   elements.cost.textContent = `${count}回 × ${formatYen(perVisit)}円 = ${formatYen(calculateEstimate(count, settings))}円`;
-  elements.message.value = makeLineMessage(getSelectedMonth().year, getSelectedMonth().monthIndex, dates, settings);
+  elements.message.value = makeLineMessage(getSelectedMonth().year, getSelectedMonth().monthIndex, dates);
   elements.copyButton.disabled = count === 0;
   elements.generateButton.disabled = count === 0;
   elements.saveButton.disabled = count === 0 || !storageAvailable;
@@ -463,14 +463,11 @@ function drawImageHeader(ctx, year, monthIndex) {
   ctx.beginPath(); ctx.moveTo(110, 290); ctx.lineTo(970, 290); ctx.stroke();
 }
 
-function drawImageFooter(ctx, count, settings) {
+function drawImageFooter(ctx, count) {
   ctx.strokeStyle = "#d0d0d0";
   ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(110, 1135); ctx.lineTo(970, 1135); ctx.stroke();
-  const perVisit = calculatePricePerVisit(settings);
-  const estimate = calculateEstimate(count, settings);
-  drawTextCentered(ctx, `子ども${settings.childrenCount}人　1回あたり ${formatYen(perVisit)}円`, 1195, "700 38px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif");
-  drawTextCentered(ctx, `合計 ${count}日間　月額概算 ${formatYen(estimate)}円`, 1255, "700 44px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif");
+  drawTextCentered(ctx, `合計 ${count}日間`, 1230, "700 52px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif");
   drawTextCentered(ctx, "ご確認よろしくお願いいたします。", 1315, "400 32px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", "#444");
 }
 
@@ -546,7 +543,6 @@ function drawImage() {
   const dates = sortedSelection();
   if (!dates.length) return;
   const { year, monthIndex } = getSelectedMonth();
-  const settings = getCurrentUsageSettings();
   const ctx = elements.canvas.getContext("2d");
   drawImageHeader(ctx, year, monthIndex);
   if (getImageLayout() === "calendar") {
@@ -555,7 +551,7 @@ function drawImage() {
   } else {
     drawListOnly(ctx, dates);
   }
-  drawImageFooter(ctx, dates.length, settings);
+  drawImageFooter(ctx, dates.length);
 }
 
 function getImageBlob() {
@@ -582,7 +578,7 @@ async function downloadImage() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `ファミサポ依頼日_${year}年${String(monthIndex + 1).padStart(2, "0")}月.png`;
+  link.download = `famisapo-${year}-${String(monthIndex + 1).padStart(2, "0")}.png`;
   link.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -590,12 +586,20 @@ async function downloadImage() {
 async function shareImage() {
   const blob = await getImageBlob();
   if (!blob) return;
+  if (!navigator.share || !window.File) {
+    elements.imageStatus.textContent = "このブラウザでは画像共有に対応していません。ダウンロードをご利用ください。";
+    return;
+  }
   const { year, monthIndex } = getSelectedMonth();
-  const file = new File([blob], `ファミサポ依頼日_${year}年${String(monthIndex + 1).padStart(2, "0")}月.png`, { type: "image/png" });
+  const file = new File([blob], `famisapo-${year}-${String(monthIndex + 1).padStart(2, "0")}.png`, { type: "image/png" });
+  if (navigator.canShare && !navigator.canShare({ files: [file] })) {
+    elements.imageStatus.textContent = "このブラウザでは画像共有に対応していません。ダウンロードをご利用ください。";
+    return;
+  }
   try {
     await navigator.share({ title: "ファミサポ依頼日", text: elements.message.value, files: [file] });
   } catch (error) {
-    if (error.name !== "AbortError") elements.imageStatus.textContent = "共有を開始できませんでした。画像を保存してから共有してください。";
+    if (error.name !== "AbortError") elements.imageStatus.textContent = "共有を開始できませんでした。ダウンロードをご利用ください。";
   }
 }
 
@@ -676,7 +680,7 @@ elements.generateButton.addEventListener("click", () => {
   imageIsCurrent = true;
   elements.previewWrap.hidden = false;
   elements.imageStatus.textContent = "PNG画像を生成しました。保存または共有できます。";
-  elements.shareButton.hidden = !(navigator.share && window.File && navigator.canShare);
+  elements.shareButton.hidden = false;
 });
 elements.downloadButton.addEventListener("click", downloadImage);
 elements.shareButton.addEventListener("click", shareImage);
