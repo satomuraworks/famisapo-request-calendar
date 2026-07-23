@@ -4,7 +4,7 @@ import {
   formatJapaneseDate,
   getMonthDates,
   nextMonthValue,
-} from "./date-utils.js?v=20260723-reload-fees";
+} from "./date-utils.js?v=20260723-sent-label";
 import {
   clearAppStorage,
   calculateEstimate,
@@ -20,8 +20,8 @@ import {
   SEND_STATUS_STORAGE_KEY,
   sendStatusLabel,
   SETTINGS_STORAGE_KEY,
-} from "./app-utils.js?v=20260723-reload-fees";
-import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260723-reload-fees";
+} from "./app-utils.js?v=20260723-sent-label";
+import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260723-sent-label";
 
 const elements = {
   month: document.querySelector("#target-month"),
