@@ -79,7 +79,7 @@ export function normalizeSendStatus(status) {
 
 export function sendStatusLabel(status) {
   const normalized = normalizeSendStatus(status);
-  if (normalized.member && normalized.center) return "両方送信済み";
+  if (normalized.member && normalized.center) return "ファミサポ・協力会員へ送信済み";
   if (normalized.member) return "協力会員のみ送信済み";
   if (normalized.center) return "ファミサポのみ送信済み";
   return "未送信";
