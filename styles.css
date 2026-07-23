@@ -1,0 +1,94 @@
+:root {
+  color-scheme: light;
+  --ink: #171717;
+  --muted: #686868;
+  --line: #dedede;
+  --surface: #ffffff;
+  --soft: #f7f7f7;
+  --accent: #c92a2a;
+  --focus: #0a66c2;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #f3f3f3;
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+button, input, textarea { font: inherit; }
+
+.app-shell {
+  width: min(100%, 680px);
+  margin: 0 auto;
+  padding: max(24px, env(safe-area-inset-top)) 16px max(36px, env(safe-area-inset-bottom));
+}
+
+.page-header { padding: 4px 4px 20px; }
+.page-header h1 { margin: 4px 0 8px; font-size: clamp(1.65rem, 6vw, 2.1rem); letter-spacing: .03em; }
+.page-header p:not(.eyebrow) { margin: 0; color: var(--muted); font-size: .95rem; line-height: 1.65; }
+.eyebrow { margin: 0; color: var(--muted); font-size: .72rem; font-weight: 700; letter-spacing: .12em; }
+
+.card { margin: 14px 0; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+h2 { margin: 0; font-size: 1.1rem; }
+.section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 15px; }
+.section-heading p { margin: 0; color: var(--muted); font-size: .85rem; text-align: right; }
+
+.month-picker { display: grid; gap: 7px; color: var(--muted); font-size: .87rem; }
+.month-picker input { width: 100%; min-height: 48px; padding: 9px 12px; color: var(--ink); background: #fff; border: 1px solid #aaa; border-radius: 9px; font-size: 1rem; }
+.hint, .status { margin: 12px 0 0; color: var(--muted); font-size: .82rem; line-height: 1.5; }
+.status { min-height: 1.25em; }
+
+.weekday-row, .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.weekday-row { margin-bottom: 5px; }
+.weekday-row span { color: var(--muted); font-size: .78rem; text-align: center; }
+.weekday-row span:first-child { color: var(--accent); }
+.weekday-row span:last-child { color: #3d5c9d; }
+.calendar-grid { grid-auto-rows: 56px; }
+.calendar-spacer { min-height: 44px; }
+.day-button {
+  width: min(100%, 56px);
+  aspect-ratio: 1;
+  padding: 2px;
+  justify-self: center;
+  align-self: center;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  font-weight: 650;
+  touch-action: manipulation;
+}
+.day-button[data-weekday="0"] { color: var(--accent); }
+.day-button[data-weekday="6"] { color: #3d5c9d; }
+.day-button.is-selected { color: var(--accent); background: #fff1f1; border-color: var(--accent); }
+.day-button:focus-visible, .button:focus-visible, input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+.selected-dates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; min-height: 28px; margin: 0; padding: 0; list-style: none; }
+.selected-dates li { padding: 9px 10px; background: var(--soft); border-radius: 8px; color: var(--accent); font-size: .92rem; font-weight: 650; }
+.selected-dates .empty { grid-column: 1 / -1; color: var(--muted); font-weight: 400; }
+.estimate { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.estimate span { color: var(--muted); font-size: .82rem; }
+.estimate strong { font-size: 1.25rem; }
+
+textarea { display: block; width: 100%; min-height: 260px; padding: 13px; resize: vertical; color: var(--ink); background: var(--soft); border: 1px solid var(--line); border-radius: 9px; font-size: .92rem; line-height: 1.65; }
+.button { min-height: 44px; padding: 10px 14px; border: 1px solid var(--ink); border-radius: 9px; cursor: pointer; font-weight: 700; touch-action: manipulation; }
+.button.primary { color: #fff; background: var(--ink); }
+.button.secondary { color: var(--ink); background: #fff; }
+.button.full { width: 100%; }
+.button:disabled { cursor: not-allowed; opacity: .4; }
+
+.image-preview-wrap { margin-top: 16px; }
+canvas { display: block; width: 100%; height: auto; border: 1px solid var(--line); background: #fff; }
+.image-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+
+@media (max-width: 380px) {
+  .card { padding: 16px; border-radius: 13px; }
+  .section-heading { align-items: flex-start; flex-direction: column; }
+  .section-heading .button { width: 100%; }
+  .selected-dates { grid-template-columns: 1fr; }
+  .image-actions { grid-template-columns: 1fr; }
+}
