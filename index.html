@@ -65,8 +65,9 @@
                 <label><input type="checkbox" name="regular-weekday" value="5" /> 金</label>
                 <label><input type="checkbox" name="regular-weekday" value="6" /> 土</label>
                 <label><input type="checkbox" name="regular-weekday" value="0" /> 日</label>
+                <label><input id="regular-holiday" type="checkbox" /> 祝日</label>
               </div>
-              <small>祝日は一括選択の対象外です。保存しただけでは日付は選択されません。</small>
+              <small>「祝日」を選択すると、表示中の月の祝日も一括選択します。保存しただけでは日付は選択されません。</small>
             </fieldset>
 
             <div class="settings-actions">
@@ -87,7 +88,7 @@
           <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
         </div>
         <div id="calendar" class="calendar-grid" aria-label="依頼日カレンダー"></div>
-        <p class="hint">日付をタップすると、選択・選択解除できます。金・土・日も選択できます。</p>
+        <p class="hint">日付をタップすると、選択・選択解除できます。土・日・祝日も選択できます。</p>
         <div class="calendar-actions">
           <button id="select-regular-weekdays-button" class="button secondary" type="button">設定した曜日を一括選択</button>
           <button id="clear-selection-button" class="button secondary" type="button">日付選択をすべて解除</button>
@@ -184,6 +185,6 @@
       <p id="app-version"></p>
       <p id="app-updated-at"></p>
     </footer>
-    <script type="module" src="app.js?v=20260723-reset-notice"></script>
+    <script type="module" src="app.js?v=20260723-holiday-selection"></script>
   </body>
 </html>

@@ -15,6 +15,7 @@ export const DEFAULT_USAGE_SETTINGS = Object.freeze({
   additionalChildFee: 350,
   transportFee: 100,
   regularWeekdays: [],
+  regularHolidays: false,
 });
 
 function normalizeNonNegativeInteger(value, fallback = 0) {
@@ -27,12 +28,16 @@ export function normalizeUsageSettings(settings) {
   const rawWeekdays = Array.isArray(settings?.regularWeekdays)
     ? settings.regularWeekdays.map(Number).filter((weekday) => Number.isInteger(weekday) && weekday >= 0 && weekday <= 6)
     : DEFAULT_USAGE_SETTINGS.regularWeekdays;
+  const regularHolidays = typeof settings?.regularHolidays === "boolean"
+    ? settings.regularHolidays
+    : Boolean(settings?.includeHolidays);
   return {
     childrenCount: Math.min(10, Math.max(1, rawCount)),
     firstChildFee: normalizeNonNegativeInteger(settings?.firstChildFee, DEFAULT_USAGE_SETTINGS.firstChildFee),
     additionalChildFee: normalizeNonNegativeInteger(settings?.additionalChildFee, DEFAULT_USAGE_SETTINGS.additionalChildFee),
     transportFee: normalizeNonNegativeInteger(settings?.transportFee, DEFAULT_USAGE_SETTINGS.transportFee),
     regularWeekdays: [...new Set(rawWeekdays)].sort((a, b) => a - b),
+    regularHolidays,
   };
 }
 

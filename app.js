@@ -4,7 +4,7 @@ import {
   formatJapaneseDate,
   getMonthDates,
   nextMonthValue,
-} from "./date-utils.js?v=20260723-reset-notice";
+} from "./date-utils.js?v=20260723-holiday-selection";
 import {
   clearAppStorage,
   calculateEstimate,
@@ -20,7 +20,7 @@ import {
   SEND_STATUS_STORAGE_KEY,
   sendStatusLabel,
   SETTINGS_STORAGE_KEY,
-} from "./app-utils.js?v=20260723-reset-notice";
+} from "./app-utils.js?v=20260723-holiday-selection";
 import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260723-reset-notice";
 
 const elements = {
@@ -32,6 +32,7 @@ const elements = {
   additionalChildFee: document.querySelector("#additional-child-fee"),
   transportFee: document.querySelector("#transport-fee"),
   regularWeekdays: document.querySelectorAll("input[name='regular-weekday']"),
+  regularHoliday: document.querySelector("#regular-holiday"),
   saveSettingsButton: document.querySelector("#save-settings-button"),
   resetSettingsButton: document.querySelector("#reset-settings-button"),
   settingStatus: document.querySelector("#setting-status"),
@@ -154,6 +155,7 @@ function getCurrentUsageSettings() {
     additionalChildFee: readFee(elements.additionalChildFee),
     transportFee: readFee(elements.transportFee),
     regularWeekdays: [...elements.regularWeekdays].filter((input) => input.checked).map((input) => Number(input.value)),
+    regularHolidays: elements.regularHoliday.checked,
   };
 }
 
@@ -166,6 +168,7 @@ function renderUsageSettings() {
   elements.transportFee.value = usageSettings.transportFee;
   const regularWeekdays = new Set(usageSettings.regularWeekdays);
   elements.regularWeekdays.forEach((input) => { input.checked = regularWeekdays.has(Number(input.value)); });
+  elements.regularHoliday.checked = usageSettings.regularHolidays;
 }
 
 function loadSettings() {
@@ -732,13 +735,14 @@ elements.calendar.addEventListener("click", (event) => {
 });
 elements.selectRegularWeekdaysButton.addEventListener("click", () => {
   const { year, monthIndex } = getSelectedMonth();
-  const dates = datesForWeekdaysExcludingHolidays(year, monthIndex, getCurrentUsageSettings().regularWeekdays);
+  const settings = getCurrentUsageSettings();
+  const dates = datesForWeekdaysExcludingHolidays(year, monthIndex, settings.regularWeekdays, settings.regularHolidays);
   const before = selectedDates.size;
   dates.forEach((date) => selectedDates.add(date));
   renderCalendar();
   updateConfirmation();
   if (selectedDates.size !== before) clearSendStatusAfterDateChange();
-  setTransientStatus(elements.settingStatus, dates.length ? "設定した曜日を追加選択しました。祝日は除外しています。" : "定期利用曜日を選択してから実行してください。");
+  setTransientStatus(elements.settingStatus, dates.length ? "設定した曜日を追加選択しました。" : "定期利用曜日または祝日を選択してから実行してください。");
 });
 elements.clearSelectionButton.addEventListener("click", () => {
   if (!selectedDates.size) return;

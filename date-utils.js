@@ -115,9 +115,9 @@ export function defaultSelectedDates(year, monthIndex, includeHolidays = false) 
 }
 
 /**
- * 指定した曜日の日付を返す。曜日の一括選択では祝日を常に除外する。
+ * 指定した曜日の日付を返す。祝日を指定した場合は、曜日に関係なくすべての祝日を含める。
  */
-export function datesForWeekdaysExcludingHolidays(year, monthIndex, weekdays) {
+export function datesForWeekdaysExcludingHolidays(year, monthIndex, weekdays, includeHolidays = false) {
   const selectedWeekdays = new Set(
     Array.isArray(weekdays)
       ? weekdays.map(Number).filter((weekday) => Number.isInteger(weekday) && weekday >= 0 && weekday <= 6)
@@ -125,7 +125,7 @@ export function datesForWeekdaysExcludingHolidays(year, monthIndex, weekdays) {
   );
   const holidays = japaneseHolidayDates(year);
   return getMonthDates(year, monthIndex)
-    .filter(({ weekday, isoDate }) => selectedWeekdays.has(weekday) && !holidays.has(isoDate))
+    .filter(({ weekday, isoDate }) => (holidays.has(isoDate) ? includeHolidays : selectedWeekdays.has(weekday)))
     .map(({ isoDate }) => isoDate);
 }
 
