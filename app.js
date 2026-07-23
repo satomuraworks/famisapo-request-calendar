@@ -61,6 +61,9 @@ const elements = {
   historyStatus: document.querySelector("#history-status"),
   clearHistoryButton: document.querySelector("#clear-history-button"),
   resetDataButton: document.querySelector("#reset-data-button"),
+  resetDataModal: document.querySelector("#reset-data-modal"),
+  resetDataCancelButton: document.querySelector("#reset-data-cancel-button"),
+  resetDataConfirmButton: document.querySelector("#reset-data-confirm-button"),
   resetCompleteNotice: document.querySelector("#reset-complete-notice"),
   reloadLatestButton: document.querySelector("#reload-latest-button"),
   maintenanceStatus: document.querySelector("#maintenance-status"),
@@ -79,6 +82,7 @@ let usageSettings = { ...DEFAULT_USAGE_SETTINGS };
 const RELOAD_TO_TOP_STORAGE_KEY = "famisapo-request-calendar.reload-to-top.v1";
 const RESET_COMPLETE_NOTICE_STORAGE_KEY = "famisapo-request-calendar.reset-complete-notice.v1";
 let resetCompleteNoticeTimer;
+let resetDataIsRunning = false;
 
 function setTransientStatus(element, message) {
   element.textContent = message;
@@ -432,14 +436,32 @@ function clearHistory() {
   }
 }
 
+function openResetDataModal() {
+  if (resetDataIsRunning || !elements.resetDataModal.hidden) return;
+  elements.resetDataModal.hidden = false;
+  document.body.classList.add("modal-open");
+  window.requestAnimationFrame(() => elements.resetDataConfirmButton.focus());
+}
+
+function closeResetDataModal() {
+  if (elements.resetDataModal.hidden) return;
+  elements.resetDataModal.hidden = true;
+  document.body.classList.remove("modal-open");
+  elements.resetDataButton.focus();
+}
+
 function resetAppData() {
-  const confirmed = window.confirm("このアプリの保存データをすべて削除します。\n\n・保存履歴\n・送信状況\n・設定\n\nは元に戻せません。\n\n削除しますか？");
-  if (!confirmed) return;
+  if (resetDataIsRunning) return;
+  resetDataIsRunning = true;
+  elements.resetDataConfirmButton.disabled = true;
+  closeResetDataModal();
   try {
     clearAppStorage(window.localStorage);
   } catch {
     storageAvailable = false;
     showStorageError();
+    resetDataIsRunning = false;
+    elements.resetDataConfirmButton.disabled = false;
     return;
   }
   try {
@@ -780,7 +802,27 @@ elements.historyList.addEventListener("click", (event) => {
   if (remove) deleteHistory(remove.dataset.month);
 });
 elements.clearHistoryButton.addEventListener("click", clearHistory);
-elements.resetDataButton.addEventListener("click", resetAppData);
+elements.resetDataButton.addEventListener("click", openResetDataModal);
+elements.resetDataCancelButton.addEventListener("click", closeResetDataModal);
+elements.resetDataConfirmButton.addEventListener("click", resetAppData);
+elements.resetDataModal.addEventListener("click", (event) => {
+  if (event.target === elements.resetDataModal) closeResetDataModal();
+});
+elements.resetDataModal.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeResetDataModal();
+    return;
+  }
+  if (event.key === "Tab") {
+    const firstButton = elements.resetDataCancelButton;
+    const lastButton = elements.resetDataConfirmButton;
+    if ((!event.shiftKey && document.activeElement === lastButton) || (event.shiftKey && document.activeElement === firstButton)) {
+      event.preventDefault();
+      (event.shiftKey ? lastButton : firstButton).focus();
+    }
+  }
+});
 elements.reloadLatestButton.addEventListener("click", reloadLatestVersion);
 
 renderHistory();

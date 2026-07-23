@@ -5,10 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <title>ファミサポ予定づくり</title>
-    <link rel="stylesheet" href="styles.css?v=20260723-reset-notice" />
+    <link rel="stylesheet" href="styles.css?v=20260724-reset-modal" />
   </head>
   <body>
     <p id="reset-complete-notice" class="reset-complete-notice" role="status" aria-live="polite" hidden></p>
+    <div id="reset-data-modal" class="reset-data-modal" role="dialog" aria-modal="true" aria-labelledby="reset-data-modal-title" aria-describedby="reset-data-modal-description" hidden>
+      <div class="reset-data-modal-card" role="document">
+        <h2 id="reset-data-modal-title">保存データをリセットしますか？</h2>
+        <p id="reset-data-modal-description">保存した利用設定、履歴、送信状況などが削除されます。この操作は元に戻せません。</p>
+        <div class="reset-data-modal-actions">
+          <button id="reset-data-cancel-button" class="button secondary" type="button">キャンセル</button>
+          <button id="reset-data-confirm-button" class="button danger-primary" type="button">リセットする</button>
+        </div>
+      </div>
+    </div>
     <main class="app-shell">
       <header class="page-header">
         <p class="eyebrow">FAMILY SUPPORT CENTER</p>
@@ -185,6 +195,6 @@
       <p id="app-version"></p>
       <p id="app-updated-at"></p>
     </footer>
-    <script type="module" src="app.js?v=20260723-holiday-selection"></script>
+    <script type="module" src="app.js?v=20260724-reset-modal"></script>
   </body>
 </html>
