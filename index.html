@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <title>ファミサポ依頼日一覧</title>
-    <link rel="stylesheet" href="styles.css?v=20260731" />
+    <link rel="stylesheet" href="styles.css?v=20260801" />
   </head>
   <body>
     <main class="app-shell">
@@ -23,19 +23,58 @@
             <input id="target-month" type="month" inputmode="numeric" />
           </span>
         </label>
-        <p id="initial-selection-hint" class="hint">初期状態では、祝日を除く月曜日から木曜日が選択されています。</p>
+        <p class="hint">初回は日付を選択していません。日付をタップするか、利用設定の曜日を一括選択してください。</p>
       </section>
 
       <section class="card setting-card" aria-labelledby="setting-heading">
-        <h2 id="setting-heading">初期選択の設定</h2>
-        <label class="toggle-control" for="include-holidays">
-          <input id="include-holidays" type="checkbox" />
-          <span>
-            <strong>祝日も初期選択する</strong>
-            <small>ONにすると、月曜日から木曜日の祝日も最初から選択します。</small>
-          </span>
-        </label>
-        <p id="setting-status" class="status" aria-live="polite"></p>
+        <details class="settings-details">
+          <summary id="setting-heading">利用設定<span>人数・料金・定期利用曜日</span></summary>
+          <div class="settings-content">
+            <div class="setting-field">
+              <span class="setting-label">子どもの人数</span>
+              <div class="stepper" aria-label="子どもの人数">
+                <button id="children-decrease" type="button" aria-label="子どもの人数を減らす">−</button>
+                <output id="children-count" for="children-decrease children-increase">1人</output>
+                <button id="children-increase" type="button" aria-label="子どもの人数を増やす">＋</button>
+              </div>
+              <small>1〜10人まで設定できます。</small>
+            </div>
+
+            <label class="setting-field" for="first-child-fee">
+              <span class="setting-label">子ども1人目の1回あたり料金</span>
+              <span class="yen-input"><input id="first-child-fee" type="number" min="0" step="1" inputmode="numeric" value="700" />円</span>
+            </label>
+            <label class="setting-field" for="additional-child-fee">
+              <span class="setting-label">子ども2人目以降の1人あたり料金</span>
+              <span class="yen-input"><input id="additional-child-fee" type="number" min="0" step="1" inputmode="numeric" value="350" />円</span>
+            </label>
+            <label class="setting-field" for="transport-fee">
+              <span class="setting-label">1回あたりの交通費</span>
+              <span class="yen-input"><input id="transport-fee" type="number" min="0" step="1" inputmode="numeric" value="100" />円</span>
+            </label>
+            <p id="fee-input-hint" class="hint setting-hint">空欄・負の数・小数・数値以外は、計算では0円として扱います。</p>
+
+            <fieldset class="weekday-settings">
+              <legend>定期利用曜日</legend>
+              <div>
+                <label><input type="checkbox" name="regular-weekday" value="1" checked /> 月</label>
+                <label><input type="checkbox" name="regular-weekday" value="2" checked /> 火</label>
+                <label><input type="checkbox" name="regular-weekday" value="3" checked /> 水</label>
+                <label><input type="checkbox" name="regular-weekday" value="4" checked /> 木</label>
+                <label><input type="checkbox" name="regular-weekday" value="5" /> 金</label>
+                <label><input type="checkbox" name="regular-weekday" value="6" /> 土</label>
+                <label><input type="checkbox" name="regular-weekday" value="0" /> 日</label>
+              </div>
+              <small>祝日は一括選択の対象外です。保存しただけでは日付は選択されません。</small>
+            </fieldset>
+
+            <div class="settings-actions">
+              <button id="save-settings-button" class="button primary" type="button">利用設定を保存</button>
+              <button id="reset-settings-button" class="button secondary" type="button">利用設定を初期値に戻す</button>
+            </div>
+            <p id="setting-status" class="status" aria-live="polite"></p>
+          </div>
+        </details>
       </section>
 
       <section class="card" aria-labelledby="calendar-heading">
@@ -48,6 +87,10 @@
         </div>
         <div id="calendar" class="calendar-grid" aria-label="依頼日カレンダー"></div>
         <p class="hint">日付をタップすると、選択・選択解除できます。金・土・日も選択できます。</p>
+        <div class="calendar-actions">
+          <button id="select-regular-weekdays-button" class="button secondary" type="button">設定した曜日を一括選択</button>
+          <button id="clear-selection-button" class="button secondary" type="button">日付選択をすべて解除</button>
+        </div>
       </section>
 
       <section class="card confirmation-card" aria-labelledby="confirmation-heading">
@@ -59,7 +102,7 @@
         <div class="estimate" aria-label="画面上の概算金額">
           <h3>1回あたりの内訳</h3>
           <dl id="price-breakdown" class="price-breakdown" aria-label="1回あたりの料金内訳"></dl>
-          <div class="price-breakdown-total"><span>合計</span><strong>1,150円</strong></div>
+          <div class="price-breakdown-total"><span>合計</span><strong id="price-per-visit">800円</strong></div>
           <h3>月額概算</h3>
           <strong id="estimated-cost">0回 × 1,150円 = 0円</strong>
           <small>確定額ではありません。</small>
@@ -132,9 +175,13 @@
       </section>
     </main>
     <footer class="app-footer" aria-label="アプリのバージョン情報">
+      <div class="unofficial-notice">
+        <p>このアプリは、ファミリー・サポート・センター利用者が、毎月の利用予定や料金の確認をしやすくするために制作した非公式ツールです。各地域や利用条件によって料金・運用方法が異なるため、実際の依頼内容や金額は、所属するファミリー・サポート・センターの案内をご確認ください。</p>
+        <p>入力内容や計算結果は、利用者自身で確認したうえでご利用ください。</p>
+      </div>
       <p id="app-version"></p>
       <p id="app-updated-at"></p>
     </footer>
-    <script type="module" src="app.js?v=20260730"></script>
+    <script type="module" src="app.js?v=20260801"></script>
   </body>
 </html>

@@ -9,25 +9,69 @@ export const APP_STORAGE_KEYS = Object.freeze([
   SEND_STATUS_STORAGE_KEY,
 ]);
 
-export const PRICE_BREAKDOWN = Object.freeze([
-  { label: "1人目", amount: 700 },
-  { label: "2人目", amount: 350 },
-  { label: "交通費", amount: 100 },
-]);
-export const PRICE_PER_VISIT = 1150;
+export const DEFAULT_USAGE_SETTINGS = Object.freeze({
+  childrenCount: 1,
+  firstChildFee: 700,
+  additionalChildFee: 350,
+  transportFee: 100,
+  regularWeekdays: [1, 2, 3, 4],
+});
 
-export function calculateEstimate(selectedCount) {
-  return selectedCount * PRICE_PER_VISIT;
+function normalizeNonNegativeInteger(value, fallback = 0) {
+  const number = typeof value === "number" ? value : Number(value);
+  return Number.isInteger(number) && number >= 0 ? number : fallback;
+}
+
+export function normalizeUsageSettings(settings) {
+  const rawCount = normalizeNonNegativeInteger(settings?.childrenCount, DEFAULT_USAGE_SETTINGS.childrenCount);
+  const rawWeekdays = Array.isArray(settings?.regularWeekdays)
+    ? settings.regularWeekdays.map(Number).filter((weekday) => Number.isInteger(weekday) && weekday >= 0 && weekday <= 6)
+    : DEFAULT_USAGE_SETTINGS.regularWeekdays;
+  return {
+    childrenCount: Math.min(10, Math.max(1, rawCount)),
+    firstChildFee: normalizeNonNegativeInteger(settings?.firstChildFee, DEFAULT_USAGE_SETTINGS.firstChildFee),
+    additionalChildFee: normalizeNonNegativeInteger(settings?.additionalChildFee, DEFAULT_USAGE_SETTINGS.additionalChildFee),
+    transportFee: normalizeNonNegativeInteger(settings?.transportFee, DEFAULT_USAGE_SETTINGS.transportFee),
+    regularWeekdays: [...new Set(rawWeekdays)].sort((a, b) => a - b),
+  };
+}
+
+export function calculatePricePerVisit(settings = DEFAULT_USAGE_SETTINGS) {
+  const normalized = normalizeUsageSettings(settings);
+  return normalized.firstChildFee
+    + normalized.additionalChildFee * Math.max(0, normalized.childrenCount - 1)
+    + normalized.transportFee;
+}
+
+export function makePriceBreakdown(settings = DEFAULT_USAGE_SETTINGS) {
+  const normalized = normalizeUsageSettings(settings);
+  const breakdown = [{ label: "1人目", amount: normalized.firstChildFee }];
+  if (normalized.childrenCount > 1) {
+    breakdown.push({ label: `追加${normalized.childrenCount - 1}人`, amount: normalized.additionalChildFee * (normalized.childrenCount - 1) });
+  }
+  breakdown.push({ label: "交通費", amount: normalized.transportFee });
+  return breakdown;
+}
+
+export function calculateEstimate(selectedCount, settings = DEFAULT_USAGE_SETTINGS) {
+  return Math.max(0, Number(selectedCount) || 0) * calculatePricePerVisit(settings);
 }
 
 export function formatYen(amount) {
   return new Intl.NumberFormat("ja-JP").format(amount);
 }
 
-export function makeLineMessage(year, monthIndex, selectedDates) {
+export function makeLineMessage(year, monthIndex, selectedDates, settings = DEFAULT_USAGE_SETTINGS) {
   const dates = [...selectedDates].sort();
   if (!dates.length) return "依頼日を選択してください。";
-  return `${year}年${monthIndex + 1}月のファミサポ依頼日についてご連絡します。\n\n${dates.map((date) => formatJapaneseDate(date)).join("\n")}\n\n以上の${dates.length}日間をお願いいたします。\n確認用の画像も添付します。\nご確認よろしくお願いいたします。`;
+  const normalized = normalizeUsageSettings(settings);
+  const additionalCount = normalized.childrenCount - 1;
+  const breakdown = additionalCount
+    ? `${formatYen(normalized.firstChildFee)}円＋追加${additionalCount}人${formatYen(normalized.additionalChildFee)}円＋交通費${formatYen(normalized.transportFee)}円`
+    : `${formatYen(normalized.firstChildFee)}円＋交通費${formatYen(normalized.transportFee)}円`;
+  const perVisit = calculatePricePerVisit(normalized);
+  const estimate = calculateEstimate(dates.length, normalized);
+  return `${year}年${monthIndex + 1}月のファミサポ依頼日についてご連絡します。\n\n${dates.map((date) => formatJapaneseDate(date)).join("\n")}\n\n以上の${dates.length}日間をお願いいたします。\n子ども${normalized.childrenCount}人／1回あたり${formatYen(perVisit)}円\n内訳：${breakdown}\n月額概算：${formatYen(estimate)}円\n\n確認用の画像も添付します。\nご確認よろしくお願いいたします。`;
 }
 
 export function normalizeSendStatus(status) {

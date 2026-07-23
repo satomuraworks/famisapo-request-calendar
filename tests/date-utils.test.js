@@ -1,16 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { defaultSelectedDates, daysInMonth, formatJapaneseDate, japaneseHolidayDates, nextMonthValue } from "../date-utils.js";
+import { datesForWeekdaysExcludingHolidays, defaultSelectedDates, daysInMonth, formatJapaneseDate, japaneseHolidayDates, nextMonthValue } from "../date-utils.js";
 import {
   APP_STORAGE_KEYS,
   calculateEstimate,
+  calculatePricePerVisit,
   clearAppStorage,
+  DEFAULT_USAGE_SETTINGS,
   formatYen,
   latestVersionUrl,
   makeLineMessage,
+  makePriceBreakdown,
   normalizeSendStatus,
-  PRICE_BREAKDOWN,
-  PRICE_PER_VISIT,
+  normalizeUsageSettings,
   sendStatusLabel,
 } from "../app-utils.js";
 import { APP_UPDATED_AT, APP_VERSION } from "../version.js";
@@ -51,18 +53,39 @@ test("翌月の月入力値を返す", () => {
   assert.equal(nextMonthValue(new Date(2026, 11, 20)), "2027-01");
 });
 
-test("利用料金を選択日数から計算して3桁区切りで表示する", () => {
-  assert.equal(PRICE_BREAKDOWN.reduce((total, item) => total + item.amount, 0), PRICE_PER_VISIT);
-  assert.equal(calculateEstimate(15), 17250);
-  assert.equal(formatYen(calculateEstimate(15)), "17,250");
+test("人数・料金・交通費から利用料金を計算して3桁区切りで表示する", () => {
+  const settings = { ...DEFAULT_USAGE_SETTINGS, childrenCount: 2 };
+  assert.equal(calculatePricePerVisit(settings), 1150);
+  assert.deepEqual(makePriceBreakdown(settings), [
+    { label: "1人目", amount: 700 },
+    { label: "追加1人", amount: 350 },
+    { label: "交通費", amount: 100 },
+  ]);
+  assert.equal(calculateEstimate(15, settings), 17250);
+  assert.equal(formatYen(calculateEstimate(15, settings)), "17,250");
 });
 
-test("LINE文章に日付、曜日、合計日数を昇順で含める", () => {
-  const message = makeLineMessage(2026, 7, ["2026-08-05", "2026-08-03", "2026-08-04"]);
+test("不正な料金は0円として扱い、保存済みの旧設定は初期値で補完する", () => {
+  const settings = normalizeUsageSettings({ childrenCount: 2, firstChildFee: -1, additionalChildFee: 350.5, transportFee: "abc", includeHolidays: true });
+  assert.deepEqual(settings, { childrenCount: 2, firstChildFee: 700, additionalChildFee: 350, transportFee: 100, regularWeekdays: [1, 2, 3, 4] });
+  assert.equal(calculatePricePerVisit({ ...DEFAULT_USAGE_SETTINGS, firstChildFee: 0, additionalChildFee: 0, transportFee: 0 }), 0);
+});
+
+test("指定曜日の一括選択では祝日を除外する", () => {
+  const selected = datesForWeekdaysExcludingHolidays(2026, 7, [1, 2, 3, 4]);
+  assert.equal(selected.includes("2026-08-11"), false); // 山の日（火）
+  assert.equal(selected.includes("2026-08-03"), true);
+  assert.equal(selected.includes("2026-08-07"), false);
+});
+
+test("LINE文章に日付、曜日、人数、料金、合計日数を昇順で含める", () => {
+  const message = makeLineMessage(2026, 7, ["2026-08-05", "2026-08-03", "2026-08-04"], { ...DEFAULT_USAGE_SETTINGS, childrenCount: 2 });
   assert.match(message, /^2026年8月のファミサポ依頼日についてご連絡します。/);
   assert.ok(message.indexOf("8月3日（月）") < message.indexOf("8月4日（火）"));
   assert.ok(message.indexOf("8月4日（火）") < message.indexOf("8月5日（水）"));
   assert.match(message, /以上の3日間をお願いいたします。/);
+  assert.match(message, /子ども2人／1回あたり1,150円/);
+  assert.match(message, /月額概算：3,450円/);
 });
 
 test("送信状況を個別に扱い、履歴用の表示文言を返す", () => {
@@ -92,6 +115,6 @@ test("最新版URLはvパラメータを付与または置き換える", () => {
 });
 
 test("バージョンと更新日はversion.jsから取得する", () => {
-  assert.equal(APP_VERSION, "1.0.0");
+  assert.equal(APP_VERSION, "1.1.0");
   assert.equal(APP_UPDATED_AT, "2026-07-23");
 });

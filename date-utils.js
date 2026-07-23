@@ -114,6 +114,21 @@ export function defaultSelectedDates(year, monthIndex, includeHolidays = false) 
     .map(({ isoDate }) => isoDate);
 }
 
+/**
+ * 指定した曜日の日付を返す。曜日の一括選択では祝日を常に除外する。
+ */
+export function datesForWeekdaysExcludingHolidays(year, monthIndex, weekdays) {
+  const selectedWeekdays = new Set(
+    Array.isArray(weekdays)
+      ? weekdays.map(Number).filter((weekday) => Number.isInteger(weekday) && weekday >= 0 && weekday <= 6)
+      : [],
+  );
+  const holidays = japaneseHolidayDates(year);
+  return getMonthDates(year, monthIndex)
+    .filter(({ weekday, isoDate }) => selectedWeekdays.has(weekday) && !holidays.has(isoDate))
+    .map(({ isoDate }) => isoDate);
+}
+
 export function formatJapaneseDate(isoDate, includeYear = false) {
   const date = fromIsoDate(isoDate);
   const prefix = includeYear ? `${date.getFullYear()}年` : "";

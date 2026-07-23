@@ -1,30 +1,39 @@
 import {
   JAPANESE_WEEKDAYS,
-  defaultSelectedDates,
+  datesForWeekdaysExcludingHolidays,
   formatJapaneseDate,
   getMonthDates,
   nextMonthValue,
-} from "./date-utils.js?v=20260725";
+} from "./date-utils.js?v=20260801";
 import {
   clearAppStorage,
   calculateEstimate,
+  calculatePricePerVisit,
+  DEFAULT_USAGE_SETTINGS,
   formatYen,
   HISTORY_STORAGE_KEY,
   latestVersionUrl,
   makeLineMessage,
+  makePriceBreakdown,
   normalizeSendStatus,
-  PRICE_BREAKDOWN,
-  PRICE_PER_VISIT,
+  normalizeUsageSettings,
   SEND_STATUS_STORAGE_KEY,
   sendStatusLabel,
   SETTINGS_STORAGE_KEY,
-} from "./app-utils.js?v=20260730";
-import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260730";
+} from "./app-utils.js?v=20260801";
+import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260801";
 
 const elements = {
   month: document.querySelector("#target-month"),
-  initialSelectionHint: document.querySelector("#initial-selection-hint"),
-  includeHolidays: document.querySelector("#include-holidays"),
+  childrenCount: document.querySelector("#children-count"),
+  childrenDecrease: document.querySelector("#children-decrease"),
+  childrenIncrease: document.querySelector("#children-increase"),
+  firstChildFee: document.querySelector("#first-child-fee"),
+  additionalChildFee: document.querySelector("#additional-child-fee"),
+  transportFee: document.querySelector("#transport-fee"),
+  regularWeekdays: document.querySelectorAll("input[name='regular-weekday']"),
+  saveSettingsButton: document.querySelector("#save-settings-button"),
+  resetSettingsButton: document.querySelector("#reset-settings-button"),
   settingStatus: document.querySelector("#setting-status"),
   calendar: document.querySelector("#calendar"),
   calendarLabel: document.querySelector("#calendar-month-label"),
@@ -32,6 +41,7 @@ const elements = {
   summary: document.querySelector("#selection-summary"),
   cost: document.querySelector("#estimated-cost"),
   priceBreakdown: document.querySelector("#price-breakdown"),
+  pricePerVisit: document.querySelector("#price-per-visit"),
   message: document.querySelector("#line-message"),
   copyButton: document.querySelector("#copy-button"),
   copyStatus: document.querySelector("#copy-status"),
@@ -52,6 +62,8 @@ const elements = {
   resetDataButton: document.querySelector("#reset-data-button"),
   reloadLatestButton: document.querySelector("#reload-latest-button"),
   maintenanceStatus: document.querySelector("#maintenance-status"),
+  selectRegularWeekdaysButton: document.querySelector("#select-regular-weekdays-button"),
+  clearSelectionButton: document.querySelector("#clear-selection-button"),
   appVersion: document.querySelector("#app-version"),
   appUpdatedAt: document.querySelector("#app-updated-at"),
 };
@@ -61,6 +73,7 @@ let imageIsCurrent = false;
 let storageAvailable = true;
 let historyEntries = [];
 let sendStatuses = {};
+let usageSettings = { ...DEFAULT_USAGE_SETTINGS };
 
 function setTransientStatus(element, message) {
   element.textContent = message;
@@ -121,22 +134,44 @@ function showStorageError() {
   elements.clearHistoryButton.disabled = true;
   elements.memberSent.disabled = true;
   elements.centerSent.disabled = true;
+  elements.saveSettingsButton.disabled = true;
+  elements.resetSettingsButton.disabled = true;
   elements.resetDataButton.disabled = true;
 }
 
+function getCurrentUsageSettings() {
+  const readFee = (input) => {
+    const amount = input.valueAsNumber;
+    return Number.isInteger(amount) && amount >= 0 ? amount : 0;
+  };
+  return {
+    childrenCount: usageSettings.childrenCount,
+    firstChildFee: readFee(elements.firstChildFee),
+    additionalChildFee: readFee(elements.additionalChildFee),
+    transportFee: readFee(elements.transportFee),
+    regularWeekdays: [...elements.regularWeekdays].filter((input) => input.checked).map((input) => Number(input.value)),
+  };
+}
+
+function renderUsageSettings() {
+  elements.childrenCount.textContent = `${usageSettings.childrenCount}人`;
+  elements.childrenDecrease.disabled = usageSettings.childrenCount <= 1;
+  elements.childrenIncrease.disabled = usageSettings.childrenCount >= 10;
+  elements.firstChildFee.value = usageSettings.firstChildFee;
+  elements.additionalChildFee.value = usageSettings.additionalChildFee;
+  elements.transportFee.value = usageSettings.transportFee;
+  const regularWeekdays = new Set(usageSettings.regularWeekdays);
+  elements.regularWeekdays.forEach((input) => { input.checked = regularWeekdays.has(Number(input.value)); });
+}
+
 function loadSettings() {
-  const settings = readStoredJson(SETTINGS_STORAGE_KEY, { includeHolidays: false });
-  elements.includeHolidays.checked = Boolean(settings?.includeHolidays);
+  usageSettings = normalizeUsageSettings(readStoredJson(SETTINGS_STORAGE_KEY, DEFAULT_USAGE_SETTINGS));
+  renderUsageSettings();
 }
 
 function saveSettings() {
-  writeStoredJson(SETTINGS_STORAGE_KEY, { includeHolidays: elements.includeHolidays.checked });
-}
-
-function updateInitialSelectionHint() {
-  elements.initialSelectionHint.textContent = elements.includeHolidays.checked
-    ? "初期状態では、祝日を含む月曜日から木曜日が選択されています。"
-    : "初期状態では、祝日を除く月曜日から木曜日が選択されています。";
+  usageSettings = getCurrentUsageSettings();
+  return writeStoredJson(SETTINGS_STORAGE_KEY, usageSettings);
 }
 
 function loadSendStatuses() {
@@ -224,13 +259,14 @@ function invalidateImage(message) {
 
 function renderPriceBreakdown() {
   elements.priceBreakdown.replaceChildren();
-  PRICE_BREAKDOWN.forEach(({ label, amount }) => {
+  makePriceBreakdown(getCurrentUsageSettings()).forEach(({ label, amount }) => {
     const term = document.createElement("dt");
     term.textContent = label;
     const detail = document.createElement("dd");
     detail.textContent = `${formatYen(amount)}円`;
     elements.priceBreakdown.append(term, detail);
   });
+  elements.pricePerVisit.textContent = `${formatYen(calculatePricePerVisit(getCurrentUsageSettings()))}円`;
 }
 
 function updateConfirmation() {
@@ -251,8 +287,10 @@ function updateConfirmation() {
   }
 
   elements.summary.textContent = `合計 ${count}日間`;
-  elements.cost.textContent = `${count}回 × ${formatYen(PRICE_PER_VISIT)}円 = ${formatYen(calculateEstimate(count))}円`;
-  elements.message.value = makeLineMessage(getSelectedMonth().year, getSelectedMonth().monthIndex, dates);
+  const settings = getCurrentUsageSettings();
+  const perVisit = calculatePricePerVisit(settings);
+  elements.cost.textContent = `${count}回 × ${formatYen(perVisit)}円 = ${formatYen(calculateEstimate(count, settings))}円`;
+  elements.message.value = makeLineMessage(getSelectedMonth().year, getSelectedMonth().monthIndex, dates, settings);
   elements.copyButton.disabled = count === 0;
   elements.generateButton.disabled = count === 0;
   elements.saveButton.disabled = count === 0 || !storageAvailable;
@@ -292,8 +330,7 @@ function renderCalendar() {
 }
 
 function setMonth(resetSelection = true) {
-  const { year, monthIndex } = getSelectedMonth();
-  if (resetSelection) selectedDates = new Set(defaultSelectedDates(year, monthIndex, elements.includeHolidays.checked));
+  if (resetSelection) selectedDates = new Set();
   imageIsCurrent = false;
   elements.previewWrap.hidden = true;
   elements.imageStatus.textContent = "";
@@ -419,19 +456,22 @@ function drawTextCentered(ctx, text, y, font, color = "#171717", x = 540) {
 function drawImageHeader(ctx, year, monthIndex) {
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, 1080, 1350);
-  drawTextCentered(ctx, "ファミリー・サポート・センター", 150, "500 40px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif");
+  drawTextCentered(ctx, "ファミサポ利用予定（非公式）", 150, "500 40px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif");
   drawTextCentered(ctx, `${year}年${monthIndex + 1}月　依頼日一覧`, 242, "700 62px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif");
   ctx.strokeStyle = "#171717";
   ctx.lineWidth = 3;
   ctx.beginPath(); ctx.moveTo(110, 290); ctx.lineTo(970, 290); ctx.stroke();
 }
 
-function drawImageFooter(ctx, count) {
+function drawImageFooter(ctx, count, settings) {
   ctx.strokeStyle = "#d0d0d0";
   ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(110, 1140); ctx.lineTo(970, 1140); ctx.stroke();
-  drawTextCentered(ctx, `合計 ${count}日間`, 1230, "700 52px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif");
-  drawTextCentered(ctx, "ご確認よろしくお願いいたします。", 1294, "400 32px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", "#444");
+  ctx.beginPath(); ctx.moveTo(110, 1135); ctx.lineTo(970, 1135); ctx.stroke();
+  const perVisit = calculatePricePerVisit(settings);
+  const estimate = calculateEstimate(count, settings);
+  drawTextCentered(ctx, `子ども${settings.childrenCount}人　1回あたり ${formatYen(perVisit)}円`, 1195, "700 38px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif");
+  drawTextCentered(ctx, `合計 ${count}日間　月額概算 ${formatYen(estimate)}円`, 1255, "700 44px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif");
+  drawTextCentered(ctx, "ご確認よろしくお願いいたします。", 1315, "400 32px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", "#444");
 }
 
 function drawListOnly(ctx, dates) {
@@ -506,6 +546,7 @@ function drawImage() {
   const dates = sortedSelection();
   if (!dates.length) return;
   const { year, monthIndex } = getSelectedMonth();
+  const settings = getCurrentUsageSettings();
   const ctx = elements.canvas.getContext("2d");
   drawImageHeader(ctx, year, monthIndex);
   if (getImageLayout() === "calendar") {
@@ -514,7 +555,7 @@ function drawImage() {
   } else {
     drawListOnly(ctx, dates);
   }
-  drawImageFooter(ctx, dates.length);
+  drawImageFooter(ctx, dates.length, settings);
 }
 
 function getImageBlob() {
@@ -560,29 +601,68 @@ async function shareImage() {
 
 elements.month.value = nextMonthValue();
 loadSettings();
-updateInitialSelectionHint();
 sendStatuses = loadSendStatuses();
 historyEntries = loadHistory();
 if (!storageAvailable) showStorageError();
 
 elements.month.addEventListener("change", () => setMonth(true));
-elements.includeHolidays.addEventListener("change", () => {
-  const settingName = elements.includeHolidays.checked ? "祝日も初期選択する" : "祝日を初期選択から除外する";
-  if (!window.confirm(`${settingName}設定に切り替えます。現在の月で手動選択した内容は、新しい設定に従って置き換わります。よろしいですか？`)) {
-    elements.includeHolidays.checked = !elements.includeHolidays.checked;
-    return;
+elements.childrenDecrease.addEventListener("click", () => {
+  usageSettings.childrenCount = Math.max(1, usageSettings.childrenCount - 1);
+  renderUsageSettings();
+  renderPriceBreakdown();
+  updateConfirmation();
+});
+elements.childrenIncrease.addEventListener("click", () => {
+  usageSettings.childrenCount = Math.min(10, usageSettings.childrenCount + 1);
+  renderUsageSettings();
+  renderPriceBreakdown();
+  updateConfirmation();
+});
+[elements.firstChildFee, elements.additionalChildFee, elements.transportFee].forEach((input) => {
+  input.addEventListener("input", () => {
+    input.setAttribute("aria-invalid", String(input.value !== "" && (!Number.isInteger(input.valueAsNumber) || input.valueAsNumber < 0)));
+    renderPriceBreakdown();
+    updateConfirmation();
+  });
+});
+elements.saveSettingsButton.addEventListener("click", () => {
+  if (saveSettings()) setTransientStatus(elements.settingStatus, "利用設定を保存しました。");
+});
+elements.resetSettingsButton.addEventListener("click", () => {
+  if (!window.confirm("利用設定を初期値に戻しますか？\n保存履歴と送信状況は削除されません。")) return;
+  usageSettings = { ...DEFAULT_USAGE_SETTINGS };
+  renderUsageSettings();
+  if (saveSettings()) {
+    selectedDates.clear();
+    renderCalendar();
+    renderPriceBreakdown();
+    updateConfirmation();
+    clearSendStatusAfterDateChange();
+    setTransientStatus(elements.settingStatus, "利用設定を初期値に戻しました。");
   }
-  saveSettings();
-  updateInitialSelectionHint();
-  setMonth(true);
-  clearSendStatusAfterDateChange();
-  setTransientStatus(elements.settingStatus, "初期選択設定を更新しました。");
 });
 elements.calendar.addEventListener("click", (event) => {
   const button = event.target.closest(".day-button");
   if (!button) return;
   const { date } = button.dataset;
   selectedDates.has(date) ? selectedDates.delete(date) : selectedDates.add(date);
+  renderCalendar();
+  updateConfirmation();
+  clearSendStatusAfterDateChange();
+});
+elements.selectRegularWeekdaysButton.addEventListener("click", () => {
+  const { year, monthIndex } = getSelectedMonth();
+  const dates = datesForWeekdaysExcludingHolidays(year, monthIndex, getCurrentUsageSettings().regularWeekdays);
+  const before = selectedDates.size;
+  dates.forEach((date) => selectedDates.add(date));
+  renderCalendar();
+  updateConfirmation();
+  if (selectedDates.size !== before) clearSendStatusAfterDateChange();
+  setTransientStatus(elements.settingStatus, dates.length ? "設定した曜日を追加選択しました。祝日は除外しています。" : "定期利用曜日を選択してから実行してください。");
+});
+elements.clearSelectionButton.addEventListener("click", () => {
+  if (!selectedDates.size) return;
+  selectedDates.clear();
   renderCalendar();
   updateConfirmation();
   clearSendStatusAfterDateChange();
