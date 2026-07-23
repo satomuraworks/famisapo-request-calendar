@@ -113,6 +113,9 @@ canvas { display: block; width: 100%; height: auto; border: 1px solid var(--line
 .history-restore span { color: var(--muted); font-size: .76rem; }
 .history-delete { min-width: 58px; }
 .history-empty { padding: 12px; color: var(--muted); background: var(--soft); border-radius: 9px; font-size: .9rem; }
+.maintenance-actions { display: grid; gap: 8px; margin-top: 14px; }
+.app-footer { width: min(100%, 680px); margin: 0 auto; padding: 4px 16px max(28px, env(safe-area-inset-bottom)); color: var(--muted); font-size: .76rem; line-height: 1.45; text-align: center; }
+.app-footer p { margin: 0; }
 
 @media (max-width: 380px) {
   .card { padding: 16px; border-radius: 13px; }

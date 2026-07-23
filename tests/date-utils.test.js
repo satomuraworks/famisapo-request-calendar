@@ -1,7 +1,19 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { defaultSelectedDates, daysInMonth, formatJapaneseDate, japaneseHolidayDates, nextMonthValue } from "../date-utils.js";
-import { calculateEstimate, formatYen, makeLineMessage, normalizeSendStatus, PRICE_BREAKDOWN, PRICE_PER_VISIT, sendStatusLabel } from "../app-utils.js";
+import {
+  APP_STORAGE_KEYS,
+  calculateEstimate,
+  clearAppStorage,
+  formatYen,
+  latestVersionUrl,
+  makeLineMessage,
+  normalizeSendStatus,
+  PRICE_BREAKDOWN,
+  PRICE_PER_VISIT,
+  sendStatusLabel,
+} from "../app-utils.js";
+import { APP_UPDATED_AT, APP_VERSION } from "../version.js";
 
 test("うるう年の2月の日数を返す", () => {
   assert.equal(daysInMonth(2028, 1), 29);
@@ -59,4 +71,27 @@ test("送信状況を個別に扱い、履歴用の表示文言を返す", () =>
   assert.equal(sendStatusLabel({ member: true, center: false }), "協力会員のみ送信済み");
   assert.equal(sendStatusLabel({ member: false, center: true }), "ファミサポのみ送信済み");
   assert.equal(sendStatusLabel(), "未送信");
+});
+
+test("このアプリの保存データだけをリセットする", () => {
+  const values = new Map([...APP_STORAGE_KEYS, "unrelated-key"].map((key) => [key, "saved"]));
+  clearAppStorage({ removeItem: (key) => values.delete(key) });
+  APP_STORAGE_KEYS.forEach((key) => assert.equal(values.has(key), false));
+  assert.equal(values.get("unrelated-key"), "saved");
+});
+
+test("最新版URLはvパラメータを付与または置き換える", () => {
+  assert.equal(
+    latestVersionUrl("https://example.com/famisapo/?mode=test#history", 1721712345),
+    "https://example.com/famisapo/?mode=test&v=1721712345#history",
+  );
+  assert.equal(
+    latestVersionUrl("https://example.com/famisapo/?v=old", 1721712345),
+    "https://example.com/famisapo/?v=1721712345",
+  );
+});
+
+test("バージョンと更新日はversion.jsから取得する", () => {
+  assert.equal(APP_VERSION, "1.0.0");
+  assert.equal(APP_UPDATED_AT, "2026-07-23");
 });

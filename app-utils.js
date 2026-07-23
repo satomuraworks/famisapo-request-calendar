@@ -1,5 +1,14 @@
 import { formatJapaneseDate } from "./date-utils.js";
 
+export const HISTORY_STORAGE_KEY = "famisapo-request-calendar.history.v1";
+export const SETTINGS_STORAGE_KEY = "famisapo-request-calendar.settings.v1";
+export const SEND_STATUS_STORAGE_KEY = "famisapo-request-calendar.send-status.v1";
+export const APP_STORAGE_KEYS = Object.freeze([
+  HISTORY_STORAGE_KEY,
+  SETTINGS_STORAGE_KEY,
+  SEND_STATUS_STORAGE_KEY,
+]);
+
 export const PRICE_BREAKDOWN = Object.freeze([
   { label: "1人目", amount: 700 },
   { label: "2人目", amount: 350 },
@@ -34,4 +43,14 @@ export function sendStatusLabel(status) {
   if (normalized.member) return "協力会員のみ送信済み";
   if (normalized.center) return "ファミサポのみ送信済み";
   return "未送信";
+}
+
+export function clearAppStorage(storage) {
+  APP_STORAGE_KEYS.forEach((key) => storage.removeItem(key));
+}
+
+export function latestVersionUrl(currentUrl, timestamp) {
+  const url = new URL(currentUrl);
+  url.searchParams.set("v", String(timestamp));
+  return url.toString();
 }

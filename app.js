@@ -6,18 +6,21 @@ import {
   nextMonthValue,
 } from "./date-utils.js?v=20260725";
 import {
+  clearAppStorage,
   calculateEstimate,
   formatYen,
+  HISTORY_STORAGE_KEY,
+  latestVersionUrl,
   makeLineMessage,
   normalizeSendStatus,
   PRICE_BREAKDOWN,
   PRICE_PER_VISIT,
+  SEND_STATUS_STORAGE_KEY,
   sendStatusLabel,
-} from "./app-utils.js?v=20260728";
+  SETTINGS_STORAGE_KEY,
+} from "./app-utils.js?v=20260730";
+import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260730";
 
-const HISTORY_STORAGE_KEY = "famisapo-request-calendar.history.v1";
-const SETTINGS_STORAGE_KEY = "famisapo-request-calendar.settings.v1";
-const SEND_STATUS_STORAGE_KEY = "famisapo-request-calendar.send-status.v1";
 const elements = {
   month: document.querySelector("#target-month"),
   initialSelectionHint: document.querySelector("#initial-selection-hint"),
@@ -46,6 +49,11 @@ const elements = {
   historyList: document.querySelector("#history-list"),
   historyStatus: document.querySelector("#history-status"),
   clearHistoryButton: document.querySelector("#clear-history-button"),
+  resetDataButton: document.querySelector("#reset-data-button"),
+  reloadLatestButton: document.querySelector("#reload-latest-button"),
+  maintenanceStatus: document.querySelector("#maintenance-status"),
+  appVersion: document.querySelector("#app-version"),
+  appUpdatedAt: document.querySelector("#app-updated-at"),
 };
 
 let selectedDates = new Set();
@@ -113,6 +121,7 @@ function showStorageError() {
   elements.clearHistoryButton.disabled = true;
   elements.memberSent.disabled = true;
   elements.centerSent.disabled = true;
+  elements.resetDataButton.disabled = true;
 }
 
 function loadSettings() {
@@ -377,6 +386,29 @@ function clearHistory() {
   }
 }
 
+function resetAppData() {
+  const confirmed = window.confirm("このアプリの保存データをすべて削除します。\n\n・保存履歴\n・送信状況\n・設定\n\nは元に戻せません。\n\n削除しますか？");
+  if (!confirmed) return;
+  try {
+    clearAppStorage(window.localStorage);
+  } catch {
+    storageAvailable = false;
+    showStorageError();
+    return;
+  }
+  elements.maintenanceStatus.textContent = "保存データを削除しました。";
+  window.setTimeout(() => window.location.reload(), 800);
+}
+
+function reloadLatestVersion() {
+  window.location.href = latestVersionUrl(window.location.href, Date.now());
+}
+
+function renderVersion() {
+  elements.appVersion.textContent = `Version ${APP_VERSION}`;
+  elements.appUpdatedAt.textContent = `Updated: ${APP_UPDATED_AT}`;
+}
+
 function drawTextCentered(ctx, text, y, font, color = "#171717", x = 540) {
   ctx.font = font;
   ctx.fillStyle = color;
@@ -586,7 +618,10 @@ elements.historyList.addEventListener("click", (event) => {
   if (remove) deleteHistory(remove.dataset.month);
 });
 elements.clearHistoryButton.addEventListener("click", clearHistory);
+elements.resetDataButton.addEventListener("click", resetAppData);
+elements.reloadLatestButton.addEventListener("click", reloadLatestVersion);
 
 renderHistory();
 renderPriceBreakdown();
+renderVersion();
 setMonth(true);
