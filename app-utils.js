@@ -45,9 +45,12 @@ export function calculatePricePerVisit(settings = DEFAULT_USAGE_SETTINGS) {
 
 export function makePriceBreakdown(settings = DEFAULT_USAGE_SETTINGS) {
   const normalized = normalizeUsageSettings(settings);
-  const breakdown = [{ label: "1人目", amount: normalized.firstChildFee }];
-  if (normalized.childrenCount > 1) {
-    breakdown.push({ label: `追加${normalized.childrenCount - 1}人`, amount: normalized.additionalChildFee * (normalized.childrenCount - 1) });
+  const breakdown = [];
+  for (let childNumber = 1; childNumber <= normalized.childrenCount; childNumber += 1) {
+    breakdown.push({
+      label: `${childNumber}人目`,
+      amount: childNumber === 1 ? normalized.firstChildFee : normalized.additionalChildFee,
+    });
   }
   breakdown.push({ label: "交通費", amount: normalized.transportFee });
   return breakdown;

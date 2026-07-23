@@ -112,6 +112,7 @@ h2 { margin: 0; font-size: 1.1rem; }
 .estimate span, .estimate small { color: var(--muted); font-size: .82rem; }
 .estimate > strong { color: var(--ink); font-size: clamp(1.15rem, 4vw, 1.35rem); }
 .price-breakdown { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; margin: 0; font-size: .92rem; }
+.price-breakdown-summary { margin: 0; color: var(--ink); font-size: .94rem; font-weight: 700; }
 .price-breakdown dt { color: var(--muted); }
 .price-breakdown dd { margin: 0; font-variant-numeric: tabular-nums; }
 .price-breakdown-total { display: flex; align-items: baseline; justify-content: space-between; padding-top: 7px; border-top: 1px solid var(--line); }

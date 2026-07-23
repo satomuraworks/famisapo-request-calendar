@@ -4,7 +4,7 @@ import {
   formatJapaneseDate,
   getMonthDates,
   nextMonthValue,
-} from "./date-utils.js?v=20260723-pngshare";
+} from "./date-utils.js?v=20260723-reload-fees";
 import {
   clearAppStorage,
   calculateEstimate,
@@ -20,8 +20,8 @@ import {
   SEND_STATUS_STORAGE_KEY,
   sendStatusLabel,
   SETTINGS_STORAGE_KEY,
-} from "./app-utils.js?v=20260723-pngshare";
-import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260723-pngshare";
+} from "./app-utils.js?v=20260723-reload-fees";
+import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260723-reload-fees";
 
 const elements = {
   month: document.querySelector("#target-month"),
@@ -41,6 +41,7 @@ const elements = {
   summary: document.querySelector("#selection-summary"),
   cost: document.querySelector("#estimated-cost"),
   priceBreakdown: document.querySelector("#price-breakdown"),
+  priceBreakdownSummary: document.querySelector("#price-breakdown-summary"),
   pricePerVisit: document.querySelector("#price-per-visit"),
   message: document.querySelector("#line-message"),
   copyButton: document.querySelector("#copy-button"),
@@ -73,6 +74,7 @@ let storageAvailable = true;
 let historyEntries = [];
 let sendStatuses = {};
 let usageSettings = { ...DEFAULT_USAGE_SETTINGS };
+const RELOAD_TO_TOP_STORAGE_KEY = "famisapo-request-calendar.reload-to-top.v1";
 
 function setTransientStatus(element, message) {
   element.textContent = message;
@@ -257,8 +259,10 @@ function invalidateImage(message) {
 }
 
 function renderPriceBreakdown() {
+  const settings = getCurrentUsageSettings();
+  elements.priceBreakdownSummary.textContent = `子ども${settings.childrenCount}人`;
   elements.priceBreakdown.replaceChildren();
-  makePriceBreakdown(getCurrentUsageSettings()).forEach(({ label, amount }) => {
+  makePriceBreakdown(settings).forEach(({ label, amount }) => {
     const term = document.createElement("dt");
     term.textContent = label;
     const detail = document.createElement("dd");
@@ -437,7 +441,42 @@ function resetAppData() {
 }
 
 function reloadLatestVersion() {
+  try {
+    window.sessionStorage.setItem(RELOAD_TO_TOP_STORAGE_KEY, "1");
+    if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
+  } catch {
+    // sessionStorage が使えない環境でも最新版の読み込みは続行する
+  }
   window.location.href = latestVersionUrl(window.location.href, Date.now());
+}
+
+function restoreTopAfterLatestReload() {
+  let shouldRestore = false;
+  try {
+    shouldRestore = window.sessionStorage.getItem(RELOAD_TO_TOP_STORAGE_KEY) === "1";
+  } catch {
+    return;
+  }
+  if (!shouldRestore) return;
+
+  const supportsScrollRestoration = "scrollRestoration" in window.history;
+  if (supportsScrollRestoration) window.history.scrollRestoration = "manual";
+  const scrollToTop = () => window.scrollTo(0, 0);
+  scrollToTop();
+  window.addEventListener("load", () => {
+    window.requestAnimationFrame(() => {
+      scrollToTop();
+      window.requestAnimationFrame(() => {
+        scrollToTop();
+        try {
+          window.sessionStorage.removeItem(RELOAD_TO_TOP_STORAGE_KEY);
+        } catch {
+          // 読み込み後のスクロール位置には影響しない
+        }
+        if (supportsScrollRestoration) window.history.scrollRestoration = "auto";
+      });
+    });
+  }, { once: true });
 }
 
 function renderVersion() {
@@ -693,4 +732,5 @@ elements.reloadLatestButton.addEventListener("click", reloadLatestVersion);
 renderHistory();
 renderPriceBreakdown();
 renderVersion();
+restoreTopAfterLatestReload();
 setMonth(true);

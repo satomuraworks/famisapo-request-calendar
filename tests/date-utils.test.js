@@ -53,16 +53,17 @@ test("翌月の月入力値を返す", () => {
   assert.equal(nextMonthValue(new Date(2026, 11, 20)), "2027-01");
 });
 
-test("人数・料金・交通費から利用料金を計算して3桁区切りで表示する", () => {
-  const settings = { ...DEFAULT_USAGE_SETTINGS, childrenCount: 2 };
-  assert.equal(calculatePricePerVisit(settings), 1150);
+test("人数・料金・交通費から利用料金を計算し、子どもごとの内訳を返す", () => {
+  const settings = { ...DEFAULT_USAGE_SETTINGS, childrenCount: 3 };
+  assert.equal(calculatePricePerVisit(settings), 1500);
   assert.deepEqual(makePriceBreakdown(settings), [
     { label: "1人目", amount: 700 },
-    { label: "追加1人", amount: 350 },
+    { label: "2人目", amount: 350 },
+    { label: "3人目", amount: 350 },
     { label: "交通費", amount: 100 },
   ]);
-  assert.equal(calculateEstimate(15, settings), 17250);
-  assert.equal(formatYen(calculateEstimate(15, settings)), "17,250");
+  assert.equal(calculateEstimate(15, settings), 22500);
+  assert.equal(formatYen(calculateEstimate(15, settings)), "22,500");
 });
 
 test("不正な料金は0円として扱い、保存済みの旧設定は初期値で補完する", () => {
@@ -114,6 +115,6 @@ test("最新版URLはvパラメータを付与または置き換える", () => {
 });
 
 test("バージョンと更新日はversion.jsから取得する", () => {
-  assert.equal(APP_VERSION, "1.1.1");
+  assert.equal(APP_VERSION, "1.1.2");
   assert.equal(APP_UPDATED_AT, "2026-07-23");
 });
