@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <title>ファミサポ依頼日一覧</title>
-    <link rel="stylesheet" href="styles.css?v=20260723" />
+    <link rel="stylesheet" href="styles.css?v=20260725" />
   </head>
   <body>
     <main class="app-shell">
@@ -21,7 +21,19 @@
           <span>依頼する月</span>
           <input id="target-month" type="month" inputmode="numeric" />
         </label>
-        <p class="hint">初期状態では、祝日を除く月曜日から木曜日が選択されています。</p>
+        <p id="initial-selection-hint" class="hint">初期状態では、祝日を除く月曜日から木曜日が選択されています。</p>
+      </section>
+
+      <section class="card setting-card" aria-labelledby="setting-heading">
+        <h2 id="setting-heading">初期選択の設定</h2>
+        <label class="toggle-control" for="include-holidays">
+          <input id="include-holidays" type="checkbox" />
+          <span>
+            <strong>祝日も初期選択する</strong>
+            <small>ONにすると、月曜日から木曜日の祝日も最初から選択します。</small>
+          </span>
+        </label>
+        <p id="setting-status" class="status" aria-live="polite"></p>
       </section>
 
       <section class="card" aria-labelledby="calendar-heading">
@@ -43,15 +55,19 @@
         </div>
         <ul id="selected-dates" class="selected-dates" aria-label="選択した依頼日"></ul>
         <div class="estimate" aria-label="画面上の概算金額">
-          <span>概算金額（1回 1,150円）</span>
-          <strong id="estimated-cost">¥0</strong>
+          <h3>1回あたりの内訳</h3>
+          <dl id="price-breakdown" class="price-breakdown" aria-label="1回あたりの料金内訳"></dl>
+          <div class="price-breakdown-total"><span>合計</span><strong>1,150円</strong></div>
+          <h3>月額概算</h3>
+          <strong id="estimated-cost">0回 × 1,150円 = 0円</strong>
+          <small>確定額ではありません。</small>
         </div>
       </section>
 
       <section class="card line-card" aria-labelledby="line-heading">
         <div class="section-heading">
           <h2 id="line-heading">LINE用文章</h2>
-          <button id="copy-button" class="button secondary" type="button">文章をコピー</button>
+          <button id="copy-button" class="button secondary" type="button">LINE文章をコピー</button>
         </div>
         <textarea id="line-message" readonly aria-label="LINE用文章"></textarea>
         <p id="copy-status" class="status" aria-live="polite"></p>
@@ -62,6 +78,11 @@
           <h2 id="image-heading">送信用PNG画像</h2>
           <p>1080 × 1350 px</p>
         </div>
+        <fieldset class="image-layout-picker">
+          <legend>画像形式</legend>
+          <label><input type="radio" name="image-layout" value="list" checked /> 一覧のみ</label>
+          <label><input type="radio" name="image-layout" value="calendar" /> カレンダー付き</label>
+        </fieldset>
         <button id="generate-button" class="button primary full" type="button">内容を確認してPNG画像を生成</button>
         <p id="image-status" class="status" aria-live="polite"></p>
         <div id="image-preview-wrap" class="image-preview-wrap" hidden>
@@ -72,7 +93,33 @@
           </div>
         </div>
       </section>
+
+      <section class="card send-status-card" aria-labelledby="send-status-heading">
+        <h2 id="send-status-heading">送信状況</h2>
+        <p class="hint">送信後にチェックしてください。依頼日を変更すると、この月のチェックは自動で解除されます。</p>
+        <div class="send-status-options">
+          <label class="toggle-control" for="member-sent">
+            <input id="member-sent" type="checkbox" />
+            <span><strong>協力会員へ送信済み</strong></span>
+          </label>
+          <label class="toggle-control" for="center-sent">
+            <input id="center-sent" type="checkbox" />
+            <span><strong>ファミサポへ送信済み</strong></span>
+          </label>
+        </div>
+        <p id="send-status-message" class="status" aria-live="polite"></p>
+      </section>
+
+      <section class="card history-card" aria-labelledby="history-heading">
+        <div class="section-heading">
+          <h2 id="history-heading">保存履歴</h2>
+          <button id="clear-history-button" class="button danger" type="button">履歴をすべて削除</button>
+        </div>
+        <button id="save-button" class="button primary full" type="button">この内容を保存</button>
+        <p id="history-status" class="status" aria-live="polite"></p>
+        <ul id="history-list" class="history-list" aria-label="保存済みの依頼日履歴"></ul>
+      </section>
     </main>
-    <script type="module" src="app.js?v=20260724"></script>
+    <script type="module" src="app.js?v=20260728"></script>
   </body>
 </html>

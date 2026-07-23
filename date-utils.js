@@ -107,10 +107,10 @@ export function japaneseHolidayDates(year) {
   return holidays;
 }
 
-export function defaultSelectedDates(year, monthIndex) {
+export function defaultSelectedDates(year, monthIndex, includeHolidays = false) {
   const holidays = japaneseHolidayDates(year);
   return getMonthDates(year, monthIndex)
-    .filter(({ weekday, isoDate }) => weekday >= 1 && weekday <= 4 && !holidays.has(isoDate))
+    .filter(({ weekday, isoDate }) => weekday >= 1 && weekday <= 4 && (includeHolidays || !holidays.has(isoDate)))
     .map(({ isoDate }) => isoDate);
 }
 
