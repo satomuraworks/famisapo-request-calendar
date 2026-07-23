@@ -4,7 +4,7 @@ import {
   formatJapaneseDate,
   getMonthDates,
   nextMonthValue,
-} from "./date-utils.js?v=20260723-sent-label";
+} from "./date-utils.js?v=20260723-reset-notice";
 import {
   clearAppStorage,
   calculateEstimate,
@@ -20,8 +20,8 @@ import {
   SEND_STATUS_STORAGE_KEY,
   sendStatusLabel,
   SETTINGS_STORAGE_KEY,
-} from "./app-utils.js?v=20260723-sent-label";
-import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260723-sent-label";
+} from "./app-utils.js?v=20260723-reset-notice";
+import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260723-reset-notice";
 
 const elements = {
   month: document.querySelector("#target-month"),
@@ -60,6 +60,7 @@ const elements = {
   historyStatus: document.querySelector("#history-status"),
   clearHistoryButton: document.querySelector("#clear-history-button"),
   resetDataButton: document.querySelector("#reset-data-button"),
+  resetCompleteNotice: document.querySelector("#reset-complete-notice"),
   reloadLatestButton: document.querySelector("#reload-latest-button"),
   maintenanceStatus: document.querySelector("#maintenance-status"),
   selectRegularWeekdaysButton: document.querySelector("#select-regular-weekdays-button"),
@@ -75,6 +76,8 @@ let historyEntries = [];
 let sendStatuses = {};
 let usageSettings = { ...DEFAULT_USAGE_SETTINGS };
 const RELOAD_TO_TOP_STORAGE_KEY = "famisapo-request-calendar.reload-to-top.v1";
+const RESET_COMPLETE_NOTICE_STORAGE_KEY = "famisapo-request-calendar.reset-complete-notice.v1";
+let resetCompleteNoticeTimer;
 
 function setTransientStatus(element, message) {
   element.textContent = message;
@@ -436,8 +439,55 @@ function resetAppData() {
     showStorageError();
     return;
   }
+  try {
+    window.sessionStorage.setItem(RESET_COMPLETE_NOTICE_STORAGE_KEY, "1");
+    if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
+  } catch {
+    // 保存データの削除完了には影響しない
+  }
   elements.maintenanceStatus.textContent = "保存データを削除しました。";
+  window.scrollTo(0, 0);
   window.setTimeout(() => window.location.reload(), 800);
+}
+
+function showResetCompleteNotice() {
+  window.clearTimeout(resetCompleteNoticeTimer);
+  elements.resetCompleteNotice.textContent = "保存データをリセットしました。";
+  elements.resetCompleteNotice.hidden = false;
+  resetCompleteNoticeTimer = window.setTimeout(() => {
+    elements.resetCompleteNotice.hidden = true;
+    elements.resetCompleteNotice.textContent = "";
+  }, 3000);
+}
+
+function restoreResetCompleteNotice() {
+  let shouldShow = false;
+  try {
+    shouldShow = window.sessionStorage.getItem(RESET_COMPLETE_NOTICE_STORAGE_KEY) === "1";
+  } catch {
+    return;
+  }
+  if (!shouldShow) return;
+
+  const supportsScrollRestoration = "scrollRestoration" in window.history;
+  if (supportsScrollRestoration) window.history.scrollRestoration = "manual";
+  const scrollToTop = () => window.scrollTo(0, 0);
+  scrollToTop();
+  window.addEventListener("load", () => {
+    window.requestAnimationFrame(() => {
+      scrollToTop();
+      window.requestAnimationFrame(() => {
+        scrollToTop();
+        try {
+          window.sessionStorage.removeItem(RESET_COMPLETE_NOTICE_STORAGE_KEY);
+        } catch {
+          // 通知の表示には影響しない
+        }
+        if (supportsScrollRestoration) window.history.scrollRestoration = "auto";
+        showResetCompleteNotice();
+      });
+    });
+  }, { once: true });
 }
 
 function reloadLatestVersion() {
@@ -733,4 +783,5 @@ renderHistory();
 renderPriceBreakdown();
 renderVersion();
 restoreTopAfterLatestReload();
+restoreResetCompleteNotice();
 setMonth(true);
