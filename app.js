@@ -4,7 +4,7 @@ import {
   formatJapaneseDate,
   getMonthDates,
   nextMonthValue,
-} from "./date-utils.js?v=20260801";
+} from "./date-utils.js?v=20260723-pngshare";
 import {
   clearAppStorage,
   calculateEstimate,
@@ -20,8 +20,8 @@ import {
   SEND_STATUS_STORAGE_KEY,
   sendStatusLabel,
   SETTINGS_STORAGE_KEY,
-} from "./app-utils.js?v=20260801";
-import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260801";
+} from "./app-utils.js?v=20260723-pngshare";
+import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260723-pngshare";
 
 const elements = {
   month: document.querySelector("#target-month"),
@@ -51,7 +51,6 @@ const elements = {
   previewWrap: document.querySelector("#image-preview-wrap"),
   canvas: document.querySelector("#image-canvas"),
   downloadButton: document.querySelector("#download-button"),
-  shareButton: document.querySelector("#share-button"),
   memberSent: document.querySelector("#member-sent"),
   centerSent: document.querySelector("#center-sent"),
   sendStatusMessage: document.querySelector("#send-status-message"),
@@ -456,7 +455,7 @@ function drawTextCentered(ctx, text, y, font, color = "#171717", x = 540) {
 function drawImageHeader(ctx, year, monthIndex) {
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, 1080, 1350);
-  drawTextCentered(ctx, "ファミサポ利用予定（非公式）", 150, "500 40px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif");
+  drawTextCentered(ctx, "ファミサポ利用予定", 150, "500 40px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif");
   drawTextCentered(ctx, `${year}年${monthIndex + 1}月　依頼日一覧`, 242, "700 62px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif");
   ctx.strokeStyle = "#171717";
   ctx.lineWidth = 3;
@@ -574,32 +573,20 @@ async function copyMessage() {
 async function downloadImage() {
   const blob = await getImageBlob();
   if (!blob) return;
-  const { year, monthIndex } = getSelectedMonth();
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `famisapo-${year}-${String(monthIndex + 1).padStart(2, "0")}.png`;
-  link.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-async function shareImage() {
-  const blob = await getImageBlob();
-  if (!blob) return;
-  if (!navigator.share || !window.File) {
-    elements.imageStatus.textContent = "このブラウザでは画像共有に対応していません。ダウンロードをご利用ください。";
+  if (!navigator.share || !navigator.canShare || !window.File) {
+    elements.imageStatus.textContent = "このブラウザでは画像の保存機能を利用できません。Safariなどのブラウザで開いてください。";
     return;
   }
   const { year, monthIndex } = getSelectedMonth();
   const file = new File([blob], `famisapo-${year}-${String(monthIndex + 1).padStart(2, "0")}.png`, { type: "image/png" });
-  if (navigator.canShare && !navigator.canShare({ files: [file] })) {
-    elements.imageStatus.textContent = "このブラウザでは画像共有に対応していません。ダウンロードをご利用ください。";
+  if (!navigator.canShare({ files: [file] })) {
+    elements.imageStatus.textContent = "このブラウザでは画像の保存機能を利用できません。Safariなどのブラウザで開いてください。";
     return;
   }
   try {
-    await navigator.share({ title: "ファミサポ依頼日", text: elements.message.value, files: [file] });
+    await navigator.share({ files: [file] });
   } catch (error) {
-    if (error.name !== "AbortError") elements.imageStatus.textContent = "共有を開始できませんでした。ダウンロードをご利用ください。";
+    if (error.name !== "AbortError") elements.imageStatus.textContent = "画像の保存を開始できませんでした。Safariなどのブラウザで開いてください。";
   }
 }
 
@@ -679,11 +666,9 @@ elements.generateButton.addEventListener("click", () => {
   drawImage();
   imageIsCurrent = true;
   elements.previewWrap.hidden = false;
-  elements.imageStatus.textContent = "PNG画像を生成しました。保存または共有できます。";
-  elements.shareButton.hidden = false;
+  elements.imageStatus.textContent = "PNG画像を生成しました。ダウンロードを押して保存してください。";
 });
 elements.downloadButton.addEventListener("click", downloadImage);
-elements.shareButton.addEventListener("click", shareImage);
 elements.memberSent.addEventListener("change", () => {
   const status = getCurrentSendStatus();
   status.member = elements.memberSent.checked;

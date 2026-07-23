@@ -124,8 +124,6 @@ textarea { display: block; width: 100%; min-height: 260px; padding: 13px; resize
 .button.danger { color: #a61e1e; background: #fff; border-color: #b74b4b; }
 .button.full { width: 100%; }
 .button:disabled { cursor: not-allowed; opacity: .4; }
-.icon-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; white-space: nowrap; }
-.button-icon { display: inline-grid; place-items: center; width: 1.2em; font-size: 1.2em; line-height: 1; }
 
 .image-layout-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 14px; padding: 0; border: 0; }
 .image-layout-picker legend { margin-bottom: 8px; color: var(--muted); font-size: .82rem; }
@@ -133,7 +131,7 @@ textarea { display: block; width: 100%; min-height: 260px; padding: 13px; resize
 .image-layout-picker input { width: 18px; height: 18px; accent-color: var(--accent); }
 .image-preview-wrap { margin-top: 16px; }
 canvas { display: block; width: 100%; height: auto; border: 1px solid var(--line); background: #fff; }
-.image-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.image-actions { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px; }
 .image-actions .button { min-width: 0; }
 
 .history-card .section-heading { align-items: center; }

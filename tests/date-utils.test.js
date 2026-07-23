@@ -114,6 +114,6 @@ test("最新版URLはvパラメータを付与または置き換える", () => {
 });
 
 test("バージョンと更新日はversion.jsから取得する", () => {
-  assert.equal(APP_VERSION, "1.1.0");
+  assert.equal(APP_VERSION, "1.1.1");
   assert.equal(APP_UPDATED_AT, "2026-07-23");
 });
