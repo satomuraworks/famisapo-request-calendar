@@ -39,7 +39,10 @@ h2 { margin: 0; font-size: 1.1rem; }
 .section-heading p { margin: 0; color: var(--muted); font-size: .85rem; text-align: right; }
 
 .month-picker { display: grid; min-width: 0; gap: 7px; color: var(--muted); font-size: .87rem; }
-.month-picker input { display: block; width: 100%; max-width: 100%; min-width: 0; min-inline-size: 0; min-height: 48px; padding: 9px 12px; color: var(--ink); background: #fff; border: 1px solid #aaa; border-radius: 9px; font-size: 1rem; }
+.month-input-frame { display: block; width: 100%; min-width: 0; min-height: 48px; overflow: hidden; background: #fff; border: 1px solid #aaa; border-radius: 9px; }
+.month-picker input { display: block; width: 100%; max-width: 100%; min-width: 0; min-inline-size: 0; min-height: 46px; padding: 9px 12px; color: var(--ink); background: transparent; border: 0; border-radius: 0; font-size: 1rem; text-align: center; -webkit-appearance: none; appearance: none; }
+.month-picker input::-webkit-date-and-time-value { min-width: 0; margin: 0; text-align: center; }
+.month-picker input::-webkit-calendar-picker-indicator { margin: 0; opacity: 1; }
 .hint, .status { margin: 12px 0 0; color: var(--muted); font-size: .82rem; line-height: 1.5; }
 .status { min-height: 1.25em; }
 .toggle-control { display: flex; align-items: flex-start; gap: 12px; min-height: 52px; margin-top: 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); cursor: pointer; }
