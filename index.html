@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <title>ファミサポ予定づくり</title>
-    <link rel="stylesheet" href="styles.css?v=20260824-weekday-durations" />
+    <link rel="stylesheet" href="styles.css?v=20260824-provider-mode" />
   </head>
   <body>
     <p id="reset-complete-notice" class="reset-complete-notice" role="status" aria-live="polite" hidden></p>
@@ -37,6 +37,12 @@
         <p>利用を依頼する日を選び、連絡用の文章と画像を作成します。</p>
       </header>
 
+      <nav class="mode-switch" role="tablist" aria-label="利用する機能">
+        <button id="requester-mode-tab" class="mode-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="requester-mode">依頼する</button>
+        <button id="provider-mode-tab" class="mode-tab" type="button" role="tab" aria-selected="false" aria-controls="provider-mode">依頼を受ける</button>
+      </nav>
+
+      <div id="requester-mode" role="tabpanel" aria-labelledby="requester-mode-tab">
       <section class="card month-card" aria-labelledby="month-heading">
         <h2 id="month-heading">対象年月</h2>
         <label class="month-picker" for="target-month">
@@ -220,6 +226,105 @@
         </div>
         <p id="maintenance-status" class="status" aria-live="polite"></p>
       </section>
+      </div>
+
+      <section id="provider-mode" class="provider-mode" role="tabpanel" aria-labelledby="provider-mode-tab" hidden>
+        <section class="card month-card" aria-labelledby="provider-month-heading">
+          <h2 id="provider-month-heading">対象年月</h2>
+          <label class="month-picker" for="provider-target-month">
+            <span>予定を管理する月</span>
+            <span class="month-input-frame"><input id="provider-target-month" type="month" inputmode="numeric" /></span>
+          </label>
+        </section>
+
+        <section class="card" aria-labelledby="provider-dashboard-heading">
+          <div class="section-heading"><h2 id="provider-dashboard-heading">今月の状況</h2><p id="provider-dashboard-month"></p></div>
+          <div id="provider-dashboard" class="provider-dashboard" aria-live="polite"></div>
+          <p class="hint">「ファミサポ未提出」は、合意済みでまだ提出済みにしていない予定です。</p>
+        </section>
+
+        <section class="card" aria-labelledby="provider-form-heading">
+          <h2 id="provider-form-heading">依頼予定を登録</h2>
+          <form id="provider-schedule-form" class="provider-form">
+            <label>利用会員の表示名<input id="provider-member-name" required maxlength="40" autocomplete="off" placeholder="Aさん" /></label>
+            <label>日付<input id="provider-date" type="date" required /></label>
+            <div class="time-pair">
+              <label>予定開始<input id="provider-planned-start" type="time" required /></label>
+              <label>予定終了<input id="provider-planned-end" type="time" required /></label>
+            </div>
+            <label>利用内容<input id="provider-content" maxlength="100" autocomplete="off" placeholder="送迎、預かり など" /></label>
+            <label>備考<textarea id="provider-note" rows="3" maxlength="300" placeholder="必要なメモだけを入力します。個人情報は入力しません。"></textarea></label>
+            <label>ステータス<select id="provider-status"></select></label>
+            <p id="provider-availability-warning" class="provider-warning" aria-live="polite"></p>
+            <button class="button primary full" type="submit">依頼予定を登録</button>
+            <p id="provider-form-status" class="status" aria-live="polite"></p>
+          </form>
+        </section>
+
+        <section class="card" aria-labelledby="provider-calendar-heading">
+          <div class="section-heading"><h2 id="provider-calendar-heading">受ける予定のカレンダー</h2><p id="provider-calendar-label"></p></div>
+          <div class="weekday-row" aria-hidden="true"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
+          <div id="provider-calendar" class="calendar-grid provider-calendar" aria-label="受ける予定のカレンダー"></div>
+          <div class="provider-day-list-wrap">
+            <h3 id="provider-selected-date-label">日付を選択してください</h3>
+            <div id="provider-day-list" class="provider-day-list" aria-live="polite"></div>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="provider-agreement-heading">
+          <div class="section-heading"><h2 id="provider-agreement-heading">合意内容の確認文</h2><button id="provider-copy-agreement" class="button secondary" type="button">文章をコピー</button></div>
+          <textarea id="provider-agreement-text" readonly aria-label="利用会員へ送る確認文章"></textarea>
+          <p id="provider-agreement-status" class="status" aria-live="polite"></p>
+        </section>
+
+        <section class="card" aria-labelledby="provider-submission-heading">
+          <div class="section-heading"><h2 id="provider-submission-heading">ファミサポ提出用予定</h2><button id="provider-copy-submission" class="button secondary" type="button">一覧をコピー</button></div>
+          <textarea id="provider-submission-text" readonly aria-label="ファミサポ提出用予定"></textarea>
+          <button id="provider-mark-submitted" class="button primary full" type="button">表示中の予定を提出済みにする</button>
+          <p id="provider-submission-status" class="status" aria-live="polite"></p>
+        </section>
+
+        <section class="card" aria-labelledby="provider-settlement-heading">
+          <div class="section-heading"><h2 id="provider-settlement-heading">月末精算</h2><p>正式な金額はファミサポの確定額を確認してください。</p></div>
+          <div id="provider-settlement-list" class="provider-settlement-list"></div>
+          <dl class="provider-settlement-summary">
+            <dt>自分の記録上の概算</dt><dd id="provider-estimate-total">0円</dd>
+            <dt>ファミサポ確定金額</dt><dd><label class="yen-input"><input id="provider-confirmed-amount" type="number" min="0" step="1" inputmode="numeric" placeholder="未入力" />円</label></dd>
+            <dt>比較結果</dt><dd id="provider-difference">確定金額を入力してください。</dd>
+          </dl>
+          <button id="provider-save-settlement" class="button secondary full" type="button">確定金額を保存</button>
+          <div class="section-heading provider-notification-heading"><h3>料金通知文</h3><button id="provider-copy-notification" class="button secondary" type="button">文章をコピー</button></div>
+          <textarea id="provider-notification-text" readonly aria-label="料金通知文"></textarea>
+          <p id="provider-settlement-status" class="status" aria-live="polite"></p>
+        </section>
+
+        <section class="card" aria-labelledby="provider-checklist-heading">
+          <h2 id="provider-checklist-heading">月末事務チェックリスト</h2>
+          <div id="provider-checklist" class="provider-checklist"></div>
+        </section>
+
+        <section class="card setting-card" aria-labelledby="provider-settings-heading">
+          <details class="settings-details">
+            <summary id="provider-settings-heading">対応可能時間の設定<span>曜日ごとの目安</span></summary>
+            <div class="settings-content">
+              <p class="hint">予定登録時の参考用です。時間外でも登録はできます。</p>
+              <div id="provider-availability-settings" class="provider-availability-settings"></div>
+              <button id="provider-save-settings" class="button primary full" type="button">対応可能時間を保存</button>
+              <p id="provider-settings-status" class="status" aria-live="polite"></p>
+            </div>
+          </details>
+        </section>
+
+        <section class="card maintenance-card" aria-labelledby="provider-maintenance-heading">
+          <h2 id="provider-maintenance-heading">依頼を受ける側のデータ管理</h2>
+          <div class="maintenance-actions">
+            <button id="provider-reset-settings" class="button danger full" type="button">対応可能時間の設定だけ初期化</button>
+            <button id="provider-delete-month" class="button danger full" type="button">この月の予定を削除</button>
+            <button id="provider-delete-all" class="button danger full" type="button">依頼を受ける側の全データを削除</button>
+          </div>
+          <p id="provider-maintenance-status" class="status" aria-live="polite"></p>
+        </section>
+      </section>
     </main>
     <footer class="app-footer" aria-label="アプリのバージョン情報">
       <div class="unofficial-notice">
@@ -235,6 +340,6 @@
       <p id="app-version"></p>
       <p id="app-updated-at"></p>
     </footer>
-    <script type="module" src="app.js?v=20260824-weekday-durations-v3"></script>
+    <script type="module" src="app.js?v=20260824-provider-mode"></script>
   </body>
 </html>

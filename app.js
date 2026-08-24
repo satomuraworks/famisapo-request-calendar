@@ -33,6 +33,7 @@ import {
   trackAnalyticsEvent,
 } from "./analytics.js?v=20260824-weekday-durations";
 import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260824-weekday-durations";
+import { initializeProviderMode } from "./provider.js?v=20260824-provider-mode";
 
 const elements = {
   month: document.querySelector("#target-month"),
@@ -91,6 +92,10 @@ const elements = {
   analyticsStatus: document.querySelector("#analytics-status"),
   appVersion: document.querySelector("#app-version"),
   appUpdatedAt: document.querySelector("#app-updated-at"),
+  requesterMode: document.querySelector("#requester-mode"),
+  providerMode: document.querySelector("#provider-mode"),
+  requesterModeTab: document.querySelector("#requester-mode-tab"),
+  providerModeTab: document.querySelector("#provider-mode-tab"),
 };
 
 let selectedDates = new Set();
@@ -110,6 +115,16 @@ function setTransientStatus(element, message) {
   window.setTimeout(() => {
     if (element.textContent === message) element.textContent = "";
   }, 2500);
+}
+
+function setAppMode(mode) {
+  const requester = mode === "requester";
+  elements.requesterMode.hidden = !requester;
+  elements.providerMode.hidden = requester;
+  elements.requesterModeTab.classList.toggle("is-active", requester);
+  elements.providerModeTab.classList.toggle("is-active", !requester);
+  elements.requesterModeTab.setAttribute("aria-selected", String(requester));
+  elements.providerModeTab.setAttribute("aria-selected", String(!requester));
 }
 
 function renderAnalyticsNotice() {
@@ -897,6 +912,8 @@ historyEntries = loadHistory();
 if (!storageAvailable) showStorageError();
 
 elements.month.addEventListener("change", () => setMonth(true));
+elements.requesterModeTab.addEventListener("click", () => setAppMode("requester"));
+elements.providerModeTab.addEventListener("click", () => setAppMode("provider"));
 elements.childrenDecrease.addEventListener("click", () => {
   usageSettings.childrenCount = Math.max(1, usageSettings.childrenCount - 1);
   renderUsageSettings();
@@ -1057,3 +1074,5 @@ else if (getAnalyticsConsent() === null) openAnalyticsConsentModal();
 restoreTopAfterLatestReload();
 restoreResetCompleteNotice();
 setMonth(true);
+initializeProviderMode();
+setAppMode("requester");
