@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <title>ファミサポ予定づくり</title>
-    <link rel="stylesheet" href="styles.css?v=20260824-duration-pricing" />
+    <link rel="stylesheet" href="styles.css?v=20260824-date-duration-settings" />
   </head>
   <body>
     <p id="reset-complete-notice" class="reset-complete-notice" role="status" aria-live="polite" hidden></p>
@@ -51,6 +51,12 @@
               <small>1〜10人まで設定できます。</small>
             </div>
 
+            <label class="setting-field" for="duration-hours">
+              <span class="setting-label">1回あたりの利用時間</span>
+              <span class="yen-input"><select id="duration-hours" aria-describedby="duration-hint"></select>時間</span>
+              <small id="duration-hint">30分から24時間まで選べます。日付を選択した後は、日付ごとの利用時間を個別に変更できます。</small>
+            </label>
+
             <label class="setting-field" for="first-child-fee">
               <span class="setting-label">子ども1人目の1時間料金</span>
               <span class="yen-input"><input id="first-child-fee" type="number" min="0" step="1" inputmode="numeric" value="700" />円</span>
@@ -63,7 +69,7 @@
               <span class="setting-label">1回あたりの交通費</span>
               <span class="yen-input"><input id="transport-fee" type="number" min="0" step="1" inputmode="numeric" value="100" />円</span>
             </label>
-            <p id="fee-input-hint" class="hint setting-hint">空欄・負の数・小数・数値以外は、計算では0円として扱います。</p>
+            <p id="fee-input-hint" class="hint setting-hint">料金は空欄・負の数・小数・数値以外を0円として扱います。交通費は1回ごとに定額で加算します。</p>
 
             <fieldset class="weekday-settings">
               <legend>定期利用曜日</legend>
@@ -77,7 +83,7 @@
                 <label><input type="checkbox" name="regular-weekday" value="0" /> 日</label>
                 <label><input id="regular-holiday" type="checkbox" /> 祝日</label>
               </div>
-              <small>「祝日」を選択すると、表示中の月の祝日も一括選択します。保存しただけでは日付は選択されません。</small>
+              <small>国民の祝日は、「祝日」を選択しない限り、初期選択と曜日の一括選択から自動で除外されます。保存しただけでは日付は選択されません。</small>
             </fieldset>
 
             <div class="settings-actions">
@@ -117,11 +123,6 @@
           <dl id="price-breakdown" class="price-breakdown" aria-label="1時間利用時の料金内訳"></dl>
           <div class="price-breakdown-total"><span>1時間利用時の合計</span><strong id="price-per-visit">800円</strong></div>
           <h3>月額概算</h3>
-          <label class="estimate-duration" for="duration-hours">
-            <span>1回あたりの利用時間</span>
-            <span><input id="duration-hours" type="number" min="0.5" step="0.5" inputmode="decimal" value="1" />時間</span>
-          </label>
-          <small id="duration-hint">30分刻みで入力してください。利用料金は時間に応じて計算し、交通費は1回ごとに定額で加算します。</small>
           <strong id="estimated-cost">0回 × 1時間 × 800円 = 0円</strong>
           <small class="estimate-notice">実際の料金は利用内容により異なります。</small>
           <small>表示金額は予定内容をもとにした概算です。</small>
@@ -200,6 +201,6 @@
       <p id="app-version"></p>
       <p id="app-updated-at"></p>
     </footer>
-    <script type="module" src="app.js?v=20260824-duration-pricing"></script>
+    <script type="module" src="app.js?v=20260824-date-duration-settings"></script>
   </body>
 </html>

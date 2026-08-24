@@ -4,6 +4,7 @@ import { datesForWeekdaysExcludingHolidays, defaultSelectedDates, daysInMonth, f
 import {
   APP_STORAGE_KEYS,
   calculateEstimate,
+  calculateEstimateForDurations,
   calculatePricePerVisit,
   clearAppStorage,
   DEFAULT_USAGE_SETTINGS,
@@ -67,12 +68,17 @@ test("人数・料金・交通費から利用料金を計算し、子どもご�
   assert.equal(calculateEstimate(15, settings, 0.5), 12000);
   assert.equal(calculateEstimate(15, settings, 1.5), 33000);
   assert.equal(calculateEstimate(15, settings, 0.75), 0);
+  assert.equal(calculateEstimateForDurations([0.5, 1.5], DEFAULT_USAGE_SETTINGS), 1600);
 });
 
 test("不正な料金は0円として扱い、保存済みの旧祝日設定を引き継ぐ", () => {
   const settings = normalizeUsageSettings({ childrenCount: 2, firstChildFee: -1, additionalChildFee: 350.5, transportFee: "abc", includeHolidays: true });
-  assert.deepEqual(settings, { childrenCount: 2, firstChildFee: 700, additionalChildFee: 350, transportFee: 100, regularWeekdays: [], regularHolidays: true });
+  assert.deepEqual(settings, { childrenCount: 2, firstChildFee: 700, additionalChildFee: 350, transportFee: 100, durationHours: 1, regularWeekdays: [], regularHolidays: true });
   assert.equal(normalizeUsageSettings({ regularHolidays: false, includeHolidays: true }).regularHolidays, false);
+  assert.equal(normalizeUsageSettings({ durationHours: 0.5 }).durationHours, 0.5);
+  assert.equal(normalizeUsageSettings({ durationHours: 24 }).durationHours, 24);
+  assert.equal(normalizeUsageSettings({ durationHours: 0.75 }).durationHours, 1);
+  assert.equal(normalizeUsageSettings({ durationHours: 24.5 }).durationHours, 1);
   assert.equal(calculatePricePerVisit({ ...DEFAULT_USAGE_SETTINGS, firstChildFee: 0, additionalChildFee: 0, transportFee: 0 }), 0);
 });
 
@@ -130,6 +136,6 @@ test("最新版URLはvパラメータを付与または置き換える", () => {
 });
 
 test("バージョンと更新日はversion.jsから取得する", () => {
-  assert.equal(APP_VERSION, "1.2.0");
+  assert.equal(APP_VERSION, "1.3.0");
   assert.equal(APP_UPDATED_AT, "2026-08-24");
 });

@@ -14,6 +14,7 @@ export const DEFAULT_USAGE_SETTINGS = Object.freeze({
   firstChildFee: 700,
   additionalChildFee: 350,
   transportFee: 100,
+  durationHours: 1,
   regularWeekdays: [],
   regularHolidays: false,
 });
@@ -21,6 +22,11 @@ export const DEFAULT_USAGE_SETTINGS = Object.freeze({
 function normalizeNonNegativeInteger(value, fallback = 0) {
   const number = typeof value === "number" ? value : Number(value);
   return Number.isInteger(number) && number >= 0 ? number : fallback;
+}
+
+export function normalizeDurationHours(value, fallback = DEFAULT_USAGE_SETTINGS.durationHours) {
+  const duration = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(duration) && duration >= 0.5 && duration <= 24 && Number.isInteger(duration * 2) ? duration : fallback;
 }
 
 export function normalizeUsageSettings(settings) {
@@ -36,6 +42,7 @@ export function normalizeUsageSettings(settings) {
     firstChildFee: normalizeNonNegativeInteger(settings?.firstChildFee, DEFAULT_USAGE_SETTINGS.firstChildFee),
     additionalChildFee: normalizeNonNegativeInteger(settings?.additionalChildFee, DEFAULT_USAGE_SETTINGS.additionalChildFee),
     transportFee: normalizeNonNegativeInteger(settings?.transportFee, DEFAULT_USAGE_SETTINGS.transportFee),
+    durationHours: normalizeDurationHours(settings?.durationHours),
     regularWeekdays: [...new Set(rawWeekdays)].sort((a, b) => a - b),
     regularHolidays,
   };
@@ -61,11 +68,12 @@ export function makePriceBreakdown(settings = DEFAULT_USAGE_SETTINGS) {
   return breakdown;
 }
 
-export function calculateEstimate(selectedCount, settings = DEFAULT_USAGE_SETTINGS, durationHours = 1) {
+export function calculateEstimate(selectedCount, settings = DEFAULT_USAGE_SETTINGS, durationHours = settings?.durationHours ?? 1) {
   const normalized = normalizeUsageSettings(settings);
   const normalizedDuration = Number(durationHours);
   const durationMultiplier = Number.isFinite(normalizedDuration)
     && normalizedDuration >= 0.5
+    && normalizedDuration <= 24
     && Number.isInteger(normalizedDuration * 2)
     ? normalizedDuration
     : 0;
@@ -73,6 +81,11 @@ export function calculateEstimate(selectedCount, settings = DEFAULT_USAGE_SETTIN
   const hourlyUsageFee = normalized.firstChildFee
     + normalized.additionalChildFee * Math.max(0, normalized.childrenCount - 1);
   return Math.max(0, Number(selectedCount) || 0) * (hourlyUsageFee * durationMultiplier + normalized.transportFee);
+}
+
+export function calculateEstimateForDurations(durationHoursList, settings = DEFAULT_USAGE_SETTINGS) {
+  if (!Array.isArray(durationHoursList)) return 0;
+  return durationHoursList.reduce((total, durationHours) => total + calculateEstimate(1, settings, durationHours), 0);
 }
 
 export function formatYen(amount) {

@@ -7,7 +7,7 @@ import {
 } from "./date-utils.js?v=20260723-holiday-selection";
 import {
   clearAppStorage,
-  calculateEstimate,
+  calculateEstimateForDurations,
   calculatePricePerVisit,
   DEFAULT_USAGE_SETTINGS,
   formatYen,
@@ -16,12 +16,13 @@ import {
   makeLineMessage,
   makePriceBreakdown,
   normalizeSendStatus,
+  normalizeDurationHours,
   normalizeUsageSettings,
   SEND_STATUS_STORAGE_KEY,
   sendStatusLabel,
   SETTINGS_STORAGE_KEY,
-} from "./app-utils.js?v=20260824-duration-pricing";
-import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260824-duration-pricing";
+} from "./app-utils.js?v=20260824-date-duration-settings";
+import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260824-date-duration-settings";
 
 const elements = {
   month: document.querySelector("#target-month"),
@@ -31,6 +32,7 @@ const elements = {
   firstChildFee: document.querySelector("#first-child-fee"),
   additionalChildFee: document.querySelector("#additional-child-fee"),
   transportFee: document.querySelector("#transport-fee"),
+  durationHours: document.querySelector("#duration-hours"),
   regularWeekdays: document.querySelectorAll("input[name='regular-weekday']"),
   regularHoliday: document.querySelector("#regular-holiday"),
   saveSettingsButton: document.querySelector("#save-settings-button"),
@@ -44,7 +46,6 @@ const elements = {
   priceBreakdown: document.querySelector("#price-breakdown"),
   priceBreakdownSummary: document.querySelector("#price-breakdown-summary"),
   pricePerVisit: document.querySelector("#price-per-visit"),
-  durationHours: document.querySelector("#duration-hours"),
   message: document.querySelector("#line-message"),
   copyButton: document.querySelector("#copy-button"),
   copyStatus: document.querySelector("#copy-status"),
@@ -75,6 +76,7 @@ const elements = {
 };
 
 let selectedDates = new Set();
+let selectedDateDurations = {};
 let imageIsCurrent = false;
 let storageAvailable = true;
 let historyEntries = [];
@@ -112,7 +114,7 @@ function sortedSelection() {
 
 function getDurationHours() {
   const duration = elements.durationHours.valueAsNumber;
-  return Number.isFinite(duration) && duration >= 0.5 && Number.isInteger(duration * 2) ? duration : 0;
+  return normalizeDurationHours(duration, 0);
 }
 
 function formatDuration(hours) {
@@ -121,6 +123,35 @@ function formatDuration(hours) {
   const minutes = totalMinutes % 60;
   if (!wholeHours) return `${minutes}分`;
   return minutes ? `${wholeHours}時間${minutes}分` : `${wholeHours}時間`;
+}
+
+function populateDurationOptions(select, selectedHours = 1) {
+  select.replaceChildren();
+  for (let halfHour = 1; halfHour <= 48; halfHour += 1) {
+    const durationHours = halfHour / 2;
+    const option = document.createElement("option");
+    option.value = String(durationHours);
+    option.textContent = formatDuration(durationHours);
+    option.selected = durationHours === selectedHours;
+    select.append(option);
+  }
+}
+
+function getSelectedDateDuration(date) {
+  return normalizeDurationHours(selectedDateDurations[date]);
+}
+
+function setSelectedDateDuration(date, durationHours) {
+  selectedDateDurations[date] = normalizeDurationHours(durationHours);
+}
+
+function selectedDurationHours(dates = sortedSelection()) {
+  return dates.map((date) => getSelectedDateDuration(date));
+}
+
+function normalizeDateDurations(dates, durations, fallback = DEFAULT_USAGE_SETTINGS.durationHours) {
+  const rawDurations = durations && typeof durations === "object" && !Array.isArray(durations) ? durations : {};
+  return Object.fromEntries(dates.map((date) => [date, normalizeDurationHours(rawDurations[date], fallback)]));
 }
 
 function getImageLayout() {
@@ -172,6 +203,7 @@ function getCurrentUsageSettings() {
     firstChildFee: readFee(elements.firstChildFee),
     additionalChildFee: readFee(elements.additionalChildFee),
     transportFee: readFee(elements.transportFee),
+    durationHours: getDurationHours(),
     regularWeekdays: [...elements.regularWeekdays].filter((input) => input.checked).map((input) => Number(input.value)),
     regularHolidays: elements.regularHoliday.checked,
   };
@@ -184,6 +216,7 @@ function renderUsageSettings() {
   elements.firstChildFee.value = usageSettings.firstChildFee;
   elements.additionalChildFee.value = usageSettings.additionalChildFee;
   elements.transportFee.value = usageSettings.transportFee;
+  elements.durationHours.value = usageSettings.durationHours;
   const regularWeekdays = new Set(usageSettings.regularWeekdays);
   elements.regularWeekdays.forEach((input) => { input.checked = regularWeekdays.has(Number(input.value)); });
   elements.regularHoliday.checked = usageSettings.regularHolidays;
@@ -195,7 +228,7 @@ function loadSettings() {
 }
 
 function saveSettings() {
-  usageSettings = getCurrentUsageSettings();
+  usageSettings = normalizeUsageSettings(getCurrentUsageSettings());
   return writeStoredJson(SETTINGS_STORAGE_KEY, usageSettings);
 }
 
@@ -267,7 +300,11 @@ function loadHistory() {
   return Array.isArray(entries)
     ? entries
       .filter(isValidHistoryEntry)
-      .map((entry) => ({ ...entry, sendStatus: normalizeSendStatus(entry.sendStatus) }))
+      .map((entry) => ({
+        ...entry,
+        durationHoursByDate: normalizeDateDurations(entry.dates, entry.durationHoursByDate),
+        sendStatus: normalizeSendStatus(entry.sendStatus),
+      }))
       .sort((a, b) => b.savedAt.localeCompare(a.savedAt))
     : [];
 }
@@ -308,7 +345,19 @@ function updateConfirmation() {
   } else {
     dates.forEach((date) => {
       const item = document.createElement("li");
-      item.textContent = formatJapaneseDate(date);
+      item.className = "selected-date-item";
+      const label = document.createElement("span");
+      label.className = "selected-date-label";
+      label.textContent = formatJapaneseDate(date);
+      const durationLabel = document.createElement("label");
+      durationLabel.className = "date-duration";
+      durationLabel.textContent = "利用時間";
+      const durationSelect = document.createElement("select");
+      durationSelect.className = "date-duration-select";
+      durationSelect.dataset.date = date;
+      populateDurationOptions(durationSelect, getSelectedDateDuration(date));
+      durationLabel.append(durationSelect);
+      item.append(label, durationLabel);
       elements.selectedDates.append(item);
     });
   }
@@ -316,11 +365,10 @@ function updateConfirmation() {
   elements.summary.textContent = `合計 ${count}日間`;
   const settings = getCurrentUsageSettings();
   const perHour = calculatePricePerVisit(settings);
-  const durationHours = getDurationHours();
+  const durationHours = selectedDurationHours(dates);
+  const totalDurationHours = durationHours.reduce((total, duration) => total + duration, 0);
   const hourlyUsageFee = perHour - settings.transportFee;
-  elements.cost.textContent = durationHours
-    ? `${count}回 × （利用料金${formatYen(hourlyUsageFee)}円 × ${formatDuration(durationHours)} ＋ 交通費${formatYen(settings.transportFee)}円） = ${formatYen(calculateEstimate(count, settings, durationHours))}円`
-    : "利用時間を30分刻みで入力してください。";
+  elements.cost.textContent = `${count}回（利用料金${formatYen(hourlyUsageFee)}円 × 合計${formatDuration(totalDurationHours)} ＋ 交通費${formatYen(settings.transportFee)}円 × ${count}回） = ${formatYen(calculateEstimateForDurations(durationHours, settings))}円`;
   elements.message.value = makeLineMessage(getSelectedMonth().year, getSelectedMonth().monthIndex, dates);
   elements.copyButton.disabled = count === 0;
   elements.generateButton.disabled = count === 0;
@@ -361,7 +409,10 @@ function renderCalendar() {
 }
 
 function setMonth(resetSelection = true) {
-  if (resetSelection) selectedDates = new Set();
+  if (resetSelection) {
+    selectedDates = new Set();
+    selectedDateDurations = {};
+  }
   imageIsCurrent = false;
   elements.previewWrap.hidden = true;
   elements.imageStatus.textContent = "";
@@ -410,7 +461,14 @@ function saveCurrentHistory() {
   const { year, monthIndex } = getSelectedMonth();
   const month = `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
   if (historyEntries.some((entry) => entry.month === month) && !window.confirm(`${monthTitle(year, monthIndex)}の保存履歴を上書きしますか？`)) return;
-  const entry = { month, dates, count: dates.length, sendStatus: getCurrentSendStatus(), savedAt: new Date().toISOString() };
+  const entry = {
+    month,
+    dates,
+    durationHoursByDate: normalizeDateDurations(dates, selectedDateDurations),
+    count: dates.length,
+    sendStatus: getCurrentSendStatus(),
+    savedAt: new Date().toISOString(),
+  };
   historyEntries = [entry, ...historyEntries.filter((saved) => saved.month !== month)];
   if (saveHistory()) {
     renderHistory();
@@ -423,6 +481,7 @@ function restoreHistory(month) {
   if (!entry) return;
   elements.month.value = entry.month;
   selectedDates = new Set(entry.dates);
+  selectedDateDurations = normalizeDateDurations(entry.dates, entry.durationHoursByDate, getDurationHours());
   sendStatuses[entry.month] = normalizeSendStatus(entry.sendStatus);
   saveSendStatuses();
   imageIsCurrent = false;
@@ -723,6 +782,7 @@ async function downloadImage() {
 }
 
 elements.month.value = nextMonthValue();
+populateDurationOptions(elements.durationHours);
 loadSettings();
 sendStatuses = loadSendStatuses();
 historyEntries = loadHistory();
@@ -748,13 +808,18 @@ elements.childrenIncrease.addEventListener("click", () => {
     updateConfirmation();
   });
 });
-elements.durationHours.addEventListener("input", () => {
+elements.durationHours.addEventListener("change", () => {
   const duration = elements.durationHours.valueAsNumber;
-  elements.durationHours.setAttribute("aria-invalid", String(elements.durationHours.value !== "" && (!Number.isFinite(duration) || duration < 0.5 || !Number.isInteger(duration * 2))));
+  elements.durationHours.setAttribute("aria-invalid", String(elements.durationHours.value !== "" && (!Number.isFinite(duration) || duration < 0.5 || duration > 24 || !Number.isInteger(duration * 2))));
   updateConfirmation();
 });
 elements.saveSettingsButton.addEventListener("click", () => {
-  if (saveSettings()) setTransientStatus(elements.settingStatus, "利用設定を保存しました。");
+  if (saveSettings()) {
+    renderUsageSettings();
+    renderPriceBreakdown();
+    updateConfirmation();
+    setTransientStatus(elements.settingStatus, "利用設定を保存しました。");
+  }
 });
 elements.resetSettingsButton.addEventListener("click", () => {
   if (!window.confirm("利用設定を初期値に戻しますか？\n保存履歴と送信状況は削除されません。")) return;
@@ -762,6 +827,7 @@ elements.resetSettingsButton.addEventListener("click", () => {
   renderUsageSettings();
   if (saveSettings()) {
     selectedDates.clear();
+    selectedDateDurations = {};
     renderCalendar();
     renderPriceBreakdown();
     updateConfirmation();
@@ -773,7 +839,13 @@ elements.calendar.addEventListener("click", (event) => {
   const button = event.target.closest(".day-button");
   if (!button) return;
   const { date } = button.dataset;
-  selectedDates.has(date) ? selectedDates.delete(date) : selectedDates.add(date);
+  if (selectedDates.has(date)) {
+    selectedDates.delete(date);
+    delete selectedDateDurations[date];
+  } else {
+    selectedDates.add(date);
+    setSelectedDateDuration(date, getDurationHours());
+  }
   renderCalendar();
   updateConfirmation();
   clearSendStatusAfterDateChange();
@@ -783,7 +855,11 @@ elements.selectRegularWeekdaysButton.addEventListener("click", () => {
   const settings = getCurrentUsageSettings();
   const dates = datesForWeekdaysExcludingHolidays(year, monthIndex, settings.regularWeekdays, settings.regularHolidays);
   const before = selectedDates.size;
-  dates.forEach((date) => selectedDates.add(date));
+  dates.forEach((date) => {
+    if (selectedDates.has(date)) return;
+    selectedDates.add(date);
+    setSelectedDateDuration(date, getDurationHours());
+  });
   renderCalendar();
   updateConfirmation();
   if (selectedDates.size !== before) clearSendStatusAfterDateChange();
@@ -792,9 +868,16 @@ elements.selectRegularWeekdaysButton.addEventListener("click", () => {
 elements.clearSelectionButton.addEventListener("click", () => {
   if (!selectedDates.size) return;
   selectedDates.clear();
+  selectedDateDurations = {};
   renderCalendar();
   updateConfirmation();
   clearSendStatusAfterDateChange();
+});
+elements.selectedDates.addEventListener("change", (event) => {
+  const durationSelect = event.target.closest(".date-duration-select");
+  if (!durationSelect) return;
+  setSelectedDateDuration(durationSelect.dataset.date, Number(durationSelect.value));
+  updateConfirmation();
 });
 elements.copyButton.addEventListener("click", copyMessage);
 elements.imageLayout.forEach((radio) => radio.addEventListener("change", () => {
