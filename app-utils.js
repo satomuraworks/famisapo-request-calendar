@@ -11,9 +11,9 @@ export const APP_STORAGE_KEYS = Object.freeze([
 
 export const DEFAULT_USAGE_SETTINGS = Object.freeze({
   childrenCount: 1,
-  firstChildFee: 700,
-  additionalChildFee: 350,
-  transportFee: 100,
+  firstChildFee: 0,
+  additionalChildFee: 0,
+  transportFee: 0,
   durationHours: 1,
   regularWeekdays: [],
   regularHolidays: false,

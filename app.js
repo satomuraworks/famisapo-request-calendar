@@ -21,8 +21,8 @@ import {
   SEND_STATUS_STORAGE_KEY,
   sendStatusLabel,
   SETTINGS_STORAGE_KEY,
-} from "./app-utils.js?v=20260824-date-duration-settings";
-import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260824-date-duration-settings";
+} from "./app-utils.js?v=20260824-zero-fee-defaults";
+import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260824-zero-fee-defaults";
 
 const elements = {
   month: document.querySelector("#target-month"),

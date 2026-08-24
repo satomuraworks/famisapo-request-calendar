@@ -55,7 +55,7 @@ test("翌月の月入力値を返す", () => {
 });
 
 test("人数・料金・交通費から利用料金を計算し、子どもごとの内訳を返す", () => {
-  const settings = { ...DEFAULT_USAGE_SETTINGS, childrenCount: 3 };
+  const settings = { ...DEFAULT_USAGE_SETTINGS, childrenCount: 3, firstChildFee: 700, additionalChildFee: 350, transportFee: 100 };
   assert.equal(calculatePricePerVisit(settings), 1500);
   assert.deepEqual(makePriceBreakdown(settings), [
     { label: "1人目", amount: 700 },
@@ -68,12 +68,16 @@ test("人数・料金・交通費から利用料金を計算し、子どもご�
   assert.equal(calculateEstimate(15, settings, 0.5), 12000);
   assert.equal(calculateEstimate(15, settings, 1.5), 33000);
   assert.equal(calculateEstimate(15, settings, 0.75), 0);
-  assert.equal(calculateEstimateForDurations([0.5, 1.5], DEFAULT_USAGE_SETTINGS), 1600);
+  assert.equal(calculateEstimateForDurations([0.5, 1.5], settings), 3000);
 });
 
 test("不正な料金は0円として扱い、保存済みの旧祝日設定を引き継ぐ", () => {
+  assert.deepEqual(
+    { firstChildFee: DEFAULT_USAGE_SETTINGS.firstChildFee, additionalChildFee: DEFAULT_USAGE_SETTINGS.additionalChildFee, transportFee: DEFAULT_USAGE_SETTINGS.transportFee },
+    { firstChildFee: 0, additionalChildFee: 0, transportFee: 0 },
+  );
   const settings = normalizeUsageSettings({ childrenCount: 2, firstChildFee: -1, additionalChildFee: 350.5, transportFee: "abc", includeHolidays: true });
-  assert.deepEqual(settings, { childrenCount: 2, firstChildFee: 700, additionalChildFee: 350, transportFee: 100, durationHours: 1, regularWeekdays: [], regularHolidays: true });
+  assert.deepEqual(settings, { childrenCount: 2, firstChildFee: 0, additionalChildFee: 0, transportFee: 0, durationHours: 1, regularWeekdays: [], regularHolidays: true });
   assert.equal(normalizeUsageSettings({ regularHolidays: false, includeHolidays: true }).regularHolidays, false);
   assert.equal(normalizeUsageSettings({ durationHours: 0.5 }).durationHours, 0.5);
   assert.equal(normalizeUsageSettings({ durationHours: 24 }).durationHours, 24);
@@ -136,6 +140,6 @@ test("最新版URLはvパラメータを付与または置き換える", () => {
 });
 
 test("バージョンと更新日はversion.jsから取得する", () => {
-  assert.equal(APP_VERSION, "1.3.0");
+  assert.equal(APP_VERSION, "1.3.1");
   assert.equal(APP_UPDATED_AT, "2026-08-24");
 });

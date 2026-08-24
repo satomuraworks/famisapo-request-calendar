@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <title>ファミサポ予定づくり</title>
-    <link rel="stylesheet" href="styles.css?v=20260824-date-duration-settings" />
+    <link rel="stylesheet" href="styles.css?v=20260824-zero-fee-defaults" />
   </head>
   <body>
     <p id="reset-complete-notice" class="reset-complete-notice" role="status" aria-live="polite" hidden></p>
@@ -59,15 +59,15 @@
 
             <label class="setting-field" for="first-child-fee">
               <span class="setting-label">子ども1人目の1時間料金</span>
-              <span class="yen-input"><input id="first-child-fee" type="number" min="0" step="1" inputmode="numeric" value="700" />円</span>
+              <span class="yen-input"><input id="first-child-fee" type="number" min="0" step="1" inputmode="numeric" value="0" />円</span>
             </label>
             <label class="setting-field" for="additional-child-fee">
               <span class="setting-label">子ども2人目以降の1人あたりの1時間料金</span>
-              <span class="yen-input"><input id="additional-child-fee" type="number" min="0" step="1" inputmode="numeric" value="350" />円</span>
+              <span class="yen-input"><input id="additional-child-fee" type="number" min="0" step="1" inputmode="numeric" value="0" />円</span>
             </label>
             <label class="setting-field" for="transport-fee">
               <span class="setting-label">1回あたりの交通費</span>
-              <span class="yen-input"><input id="transport-fee" type="number" min="0" step="1" inputmode="numeric" value="100" />円</span>
+              <span class="yen-input"><input id="transport-fee" type="number" min="0" step="1" inputmode="numeric" value="0" />円</span>
             </label>
             <p id="fee-input-hint" class="hint setting-hint">料金は空欄・負の数・小数・数値以外を0円として扱います。交通費は1回ごとに定額で加算します。</p>
 
@@ -121,9 +121,9 @@
           <h3>1時間利用時の内訳</h3>
           <p id="price-breakdown-summary" class="price-breakdown-summary">子ども1人</p>
           <dl id="price-breakdown" class="price-breakdown" aria-label="1時間利用時の料金内訳"></dl>
-          <div class="price-breakdown-total"><span>1時間利用時の合計</span><strong id="price-per-visit">800円</strong></div>
+          <div class="price-breakdown-total"><span>1時間利用時の合計</span><strong id="price-per-visit">0円</strong></div>
           <h3>月額概算</h3>
-          <strong id="estimated-cost">0回 × 1時間 × 800円 = 0円</strong>
+          <strong id="estimated-cost">0回 × 1時間 × 0円 = 0円</strong>
           <small class="estimate-notice">実際の料金は利用内容により異なります。</small>
           <small>表示金額は予定内容をもとにした概算です。</small>
         </div>
@@ -201,6 +201,6 @@
       <p id="app-version"></p>
       <p id="app-updated-at"></p>
     </footer>
-    <script type="module" src="app.js?v=20260824-date-duration-settings"></script>
+    <script type="module" src="app.js?v=20260824-zero-fee-defaults"></script>
   </body>
 </html>
