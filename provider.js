@@ -344,7 +344,7 @@ export function initializeProviderMode() {
     elements.availabilitySettings.replaceChildren(...AVAILABILITY_KEYS.map((key) => {
       const availability = settings.availability[key];
       const row = document.createElement("div"); row.className = "provider-availability-row";
-      row.innerHTML = `<strong>${AVAILABILITY_LABELS[key]}</strong><label><input type="checkbox" data-key="${key}" data-field="enabled" ${availability.enabled ? "checked" : ""} />対応可能</label><label>開始<input type="time" data-key="${key}" data-field="start" value="${availability.start}" /></label><label>終了<input type="time" data-key="${key}" data-field="end" value="${availability.end}" /></label>`;
+      row.innerHTML = `<strong>${AVAILABILITY_LABELS[key]}</strong><label class="provider-availability-toggle"><input type="checkbox" data-key="${key}" data-field="enabled" ${availability.enabled ? "checked" : ""} />対応可能</label><div class="provider-time-fields"><label>開始<input type="time" data-key="${key}" data-field="start" value="${availability.start}" /></label><label>終了<input type="time" data-key="${key}" data-field="end" value="${availability.end}" /></label></div>`;
       return row;
     }));
   }
