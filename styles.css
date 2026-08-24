@@ -31,6 +31,12 @@ button, label { -webkit-tap-highlight-color: transparent; }
 .reset-data-modal-card p { margin: 12px 0 0; color: var(--muted); font-size: .92rem; line-height: 1.6; }
 .reset-data-modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
 .button.danger-primary { color: #fff; background: #a61e1e; border-color: #a61e1e; }
+.analytics-consent-modal { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 16px; background: rgb(0 0 0 / .48); }
+.analytics-consent-modal[hidden] { display: none; }
+.analytics-consent-modal-card { width: min(100%, 460px); padding: 22px; background: var(--surface); border-radius: 16px; box-shadow: 0 16px 40px rgb(0 0 0 / .24); }
+.analytics-consent-modal-card h2 { margin: 0; font-size: 1.2rem; }
+.analytics-consent-modal-card p { margin: 12px 0 0; color: var(--muted); font-size: .92rem; line-height: 1.6; }
+.analytics-consent-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
 
 .app-shell {
   width: min(100%, 680px);
@@ -161,11 +167,17 @@ canvas { display: block; width: 100%; height: auto; border: 1px solid var(--line
 .app-footer p { margin: 0; }
 .unofficial-notice { margin: 6px 0 16px; padding: 14px; color: #555; background: #e9e9e9; border-radius: 10px; font-size: .8rem; line-height: 1.65; text-align: left; }
 .unofficial-notice p + p { margin-top: 9px; font-weight: 700; }
+.analytics-notice { margin: 0 0 16px; padding: 14px; color: #555; background: var(--soft); border: 1px solid var(--line); border-radius: 10px; font-size: .8rem; line-height: 1.65; text-align: left; }
+.analytics-notice h2 { margin: 0 0 6px; color: var(--ink); font-size: .95rem; }
+.analytics-notice .button { width: 100%; margin-top: 12px; font-size: .8rem; }
+.analytics-status { min-height: 1.45em; margin-top: 8px !important; }
 
 @media (max-width: 380px) {
   .reset-complete-notice { width: calc(100% - 24px); }
   .reset-data-modal { padding: 12px; }
   .reset-data-modal-card { padding: 20px 16px; }
+  .analytics-consent-modal { padding: 12px; }
+  .analytics-consent-modal-card { padding: 20px 16px; }
   .card { padding: 16px; border-radius: 13px; }
   .section-heading { align-items: flex-start; flex-direction: column; }
   .section-heading .button { width: 100%; }

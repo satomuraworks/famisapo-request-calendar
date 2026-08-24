@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <title>ファミサポ予定づくり</title>
-    <link rel="stylesheet" href="styles.css?v=20260824-contact-wording" />
+    <link rel="stylesheet" href="styles.css?v=20260824-consent-modal" />
   </head>
   <body>
     <p id="reset-complete-notice" class="reset-complete-notice" role="status" aria-live="polite" hidden></p>
@@ -16,6 +16,17 @@
         <div class="reset-data-modal-actions">
           <button id="reset-data-cancel-button" class="button secondary" type="button">キャンセル</button>
           <button id="reset-data-confirm-button" class="button danger-primary" type="button">リセットする</button>
+        </div>
+      </div>
+    </div>
+    <div id="analytics-consent-modal" class="analytics-consent-modal" role="dialog" aria-modal="true" aria-labelledby="analytics-consent-title" aria-describedby="analytics-consent-description" hidden>
+      <div class="analytics-consent-modal-card" role="document">
+        <h2 id="analytics-consent-title">アクセス解析への協力について</h2>
+        <p id="analytics-consent-description">このサイトでは、利用状況の把握と改善のために Google Analytics 4 を使用します。アクセス解析用の Cookie を使い、画像作成や出力完了などの操作を匿名で集計します。</p>
+        <p>日付、料金、人数、保存履歴、連絡状況などの入力内容は送信しません。許可しない場合でも、すべての機能を利用できます。</p>
+        <div class="analytics-consent-actions">
+          <button id="analytics-decline-button" class="button secondary" type="button">許可しない</button>
+          <button id="analytics-accept-button" class="button primary" type="button">アクセス解析を許可する</button>
         </div>
       </div>
     </div>
@@ -198,9 +209,15 @@
         <p>このアプリは、ファミリー・サポート・センター利用者が、毎月の利用予定や料金の確認をしやすくするために制作した非公式ツールです。各地域や利用条件によって料金・運用方法が異なるため、実際の依頼内容や金額は、所属するファミリー・サポート・センターの案内をご確認ください。</p>
         <p>入力内容や計算結果は、利用者自身で確認したうえでご利用ください。</p>
       </div>
+      <section class="analytics-notice" aria-labelledby="analytics-heading">
+        <h2 id="analytics-heading">アクセス解析について</h2>
+        <p>利用状況の把握と改善のため、Google Analytics 4 を使用しています。日付、料金、人数、保存履歴、連絡状況などの入力内容は送信しません。</p>
+        <button id="analytics-settings-button" class="button secondary" type="button">アクセス解析の選択を変更する</button>
+        <p id="analytics-status" class="analytics-status" aria-live="polite"></p>
+      </section>
       <p id="app-version"></p>
       <p id="app-updated-at"></p>
     </footer>
-    <script type="module" src="app.js?v=20260824-contact-wording"></script>
+    <script type="module" src="app.js?v=20260824-consent-modal"></script>
   </body>
 </html>

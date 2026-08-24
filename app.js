@@ -22,7 +22,14 @@ import {
   sendStatusLabel,
   SETTINGS_STORAGE_KEY,
 } from "./app-utils.js?v=20260824-contact-wording";
-import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260824-contact-wording";
+import {
+  disableAnalytics,
+  getAnalyticsConsent,
+  initializeAnalytics,
+  saveAnalyticsConsent,
+  trackAnalyticsEvent,
+} from "./analytics.js?v=20260824-consent-modal";
+import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260824-consent-modal";
 
 const elements = {
   month: document.querySelector("#target-month"),
@@ -71,6 +78,11 @@ const elements = {
   maintenanceStatus: document.querySelector("#maintenance-status"),
   selectRegularWeekdaysButton: document.querySelector("#select-regular-weekdays-button"),
   clearSelectionButton: document.querySelector("#clear-selection-button"),
+  analyticsModal: document.querySelector("#analytics-consent-modal"),
+  analyticsAcceptButton: document.querySelector("#analytics-accept-button"),
+  analyticsDeclineButton: document.querySelector("#analytics-decline-button"),
+  analyticsSettingsButton: document.querySelector("#analytics-settings-button"),
+  analyticsStatus: document.querySelector("#analytics-status"),
   appVersion: document.querySelector("#app-version"),
   appUpdatedAt: document.querySelector("#app-updated-at"),
 };
@@ -92,6 +104,50 @@ function setTransientStatus(element, message) {
   window.setTimeout(() => {
     if (element.textContent === message) element.textContent = "";
   }, 2500);
+}
+
+function renderAnalyticsNotice() {
+  const consent = getAnalyticsConsent();
+  elements.analyticsStatus.textContent = consent === "granted"
+    ? "アクセス解析を許可しています。"
+    : consent === "denied"
+      ? "アクセス解析は許可していません。"
+      : "アクセス解析はまだ許可されていません。";
+}
+
+function openAnalyticsConsentModal() {
+  elements.analyticsModal.hidden = false;
+  document.body.classList.add("modal-open");
+  elements.analyticsAcceptButton.focus();
+}
+
+function closeAnalyticsConsentModal() {
+  elements.analyticsModal.hidden = true;
+  document.body.classList.remove("modal-open");
+}
+
+function trapAnalyticsConsentFocus(event) {
+  if (elements.analyticsModal.hidden || event.key !== "Tab") return;
+  const firstButton = elements.analyticsDeclineButton;
+  const lastButton = elements.analyticsAcceptButton;
+  if (event.shiftKey && document.activeElement === firstButton) {
+    event.preventDefault();
+    lastButton.focus();
+  } else if (!event.shiftKey && document.activeElement === lastButton) {
+    event.preventDefault();
+    firstButton.focus();
+  }
+}
+
+function setAnalyticsConsent(consent) {
+  if (!saveAnalyticsConsent(consent)) {
+    elements.analyticsStatus.textContent = "このブラウザでは選択を保存できませんでした。";
+    return;
+  }
+  if (consent === "granted") initializeAnalytics();
+  else disableAnalytics();
+  closeAnalyticsConsentModal();
+  renderAnalyticsNotice();
 }
 
 function getSelectedMonth() {
@@ -473,6 +529,7 @@ function saveCurrentHistory() {
   if (saveHistory()) {
     renderHistory();
     setTransientStatus(elements.historyStatus, "この内容を端末内に保存しました。");
+    trackAnalyticsEvent("schedule_saved");
   }
 }
 
@@ -776,6 +833,7 @@ async function downloadImage() {
   }
   try {
     await navigator.share({ files: [file] });
+    trackAnalyticsEvent("image_export_completed");
   } catch (error) {
     if (error.name !== "AbortError") elements.imageStatus.textContent = "画像の保存を開始できませんでした。Safariなどのブラウザで開いてください。";
   }
@@ -888,6 +946,7 @@ elements.generateButton.addEventListener("click", () => {
   imageIsCurrent = true;
   elements.previewWrap.hidden = false;
   elements.imageStatus.textContent = "PNG画像を生成しました。ダウンロードを押して保存してください。";
+  trackAnalyticsEvent("image_generated");
 });
 elements.downloadButton.addEventListener("click", downloadImage);
 elements.memberSent.addEventListener("change", () => {
@@ -930,10 +989,17 @@ elements.resetDataModal.addEventListener("keydown", (event) => {
   }
 });
 elements.reloadLatestButton.addEventListener("click", reloadLatestVersion);
+elements.analyticsAcceptButton.addEventListener("click", () => setAnalyticsConsent("granted"));
+elements.analyticsDeclineButton.addEventListener("click", () => setAnalyticsConsent("denied"));
+elements.analyticsSettingsButton.addEventListener("click", openAnalyticsConsentModal);
+document.addEventListener("keydown", trapAnalyticsConsentFocus);
 
 renderHistory();
 renderPriceBreakdown();
 renderVersion();
+renderAnalyticsNotice();
+if (getAnalyticsConsent() === "granted") initializeAnalytics();
+else if (getAnalyticsConsent() === null) openAnalyticsConsentModal();
 restoreTopAfterLatestReload();
 restoreResetCompleteNotice();
 setMonth(true);
