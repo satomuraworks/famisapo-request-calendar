@@ -33,7 +33,7 @@ import {
   trackAnalyticsEvent,
 } from "./analytics.js?v=20260824-weekday-durations";
 import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260824-weekday-durations";
-import { initializeProviderMode } from "./provider.js?v=20260824-provider-ocr";
+import { initializeProviderMode } from "./provider.js?v=20260824-provider-bulk";
 
 const elements = {
   month: document.querySelector("#target-month"),
@@ -96,6 +96,10 @@ const elements = {
   providerMode: document.querySelector("#provider-mode"),
   requesterModeTab: document.querySelector("#requester-mode-tab"),
   providerModeTab: document.querySelector("#provider-mode-tab"),
+  modeIndicator: document.querySelector("#mode-indicator"),
+  modeIndicatorTitle: document.querySelector("#mode-indicator-title"),
+  modeIndicatorDescription: document.querySelector("#mode-indicator-description"),
+  pageDescription: document.querySelector("#page-description"),
 };
 
 let selectedDates = new Set();
@@ -125,6 +129,14 @@ function setAppMode(mode) {
   elements.providerModeTab.classList.toggle("is-active", !requester);
   elements.requesterModeTab.setAttribute("aria-selected", String(requester));
   elements.providerModeTab.setAttribute("aria-selected", String(!requester));
+  elements.modeIndicator.dataset.mode = requester ? "requester" : "provider";
+  elements.modeIndicatorTitle.textContent = requester ? "依頼する側" : "依頼を受ける側";
+  elements.modeIndicatorDescription.textContent = requester
+    ? "利用したい日を選び、連絡用の文章と予定画像を作ります。"
+    : "受ける日を選び、予定・実績・月末精算を管理します。";
+  elements.pageDescription.textContent = requester
+    ? "利用を依頼する日を選び、連絡用の文章と画像を作成します。"
+    : "依頼を受ける日を選び、予定・実績・月末精算をまとめて管理します。";
 }
 
 function renderAnalyticsNotice() {

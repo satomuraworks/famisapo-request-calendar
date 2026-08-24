@@ -19,6 +19,7 @@ import {
 } from "../app-utils.js";
 import { APP_UPDATED_AT, APP_VERSION } from "../version.js";
 import { durationHoursBetween, endTimeForDuration, extractScheduleDatesFromOcr } from "../provider-utils.js";
+import { normalizeProviderSchedule } from "../provider.js";
 
 test("うるう年の2月の日数を返す", () => {
   assert.equal(daysInMonth(2028, 1), 29);
@@ -173,4 +174,19 @@ test("OCR文字列から予定画像の日付候補を抽出し、確認不能�
   assert.deepEqual(result.dates, ["2026-09-03", "2026-09-07"]);
   assert.match(result.warnings.join(" "), /9月31日/);
   assert.deepEqual(extractScheduleDatesFromOcr("読み取り失敗", "2026-09").dates, []);
+});
+
+test("予定画像の一覧形式とカレンダー付き形式で共通の日付一覧を候補にする", () => {
+  const imageText = "ファミサポ利用予定\n2026年9月 依頼日一覧\n9 月 1 日（火） 1時間\n9月3日（木） 1時間30分";
+  assert.deepEqual(extractScheduleDatesFromOcr(imageText, "2026-09").dates, ["2026-09-01", "2026-09-03"]);
+});
+
+test("終了時刻だけを保存した既存の受ける側予定に利用時間を補完する", () => {
+  const schedule = normalizeProviderSchedule({
+    id: "old-record", memberName: "Aさん", date: "2026-09-01", plannedStart: "15:15", plannedEnd: "16:45",
+    actualStart: "15:15", actualEnd: "16:45", content: "自由入力の内容", status: "依頼あり",
+  });
+  assert.equal(schedule.plannedDurationHours, 1.5);
+  assert.equal(schedule.plannedEnd, "16:45");
+  assert.equal(schedule.content, "自由入力の内容");
 });

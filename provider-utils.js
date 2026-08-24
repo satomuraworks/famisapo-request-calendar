@@ -43,12 +43,12 @@ function validIsoDate(year, month, day) {
 export function extractScheduleDatesFromOcr(text, fallbackMonth) {
   const normalized = normalizeOcrText(text);
   const [fallbackYear, fallbackMonthNumber] = String(fallbackMonth ?? "").split("-").map(Number);
-  const header = normalized.match(/(20\d{2})年\s*(1[0-2]|[1-9])月/);
+  const header = normalized.match(/(20\d{2})年\s*(1[0-2]|[1-9])\s*月/);
   const headerYear = header ? Number(header[1]) : fallbackYear;
   const headerMonth = header ? Number(header[2]) : fallbackMonthNumber;
   const candidates = new Set();
   const invalidCandidates = [];
-  const datePattern = /(?:(20\d{2})年\s*)?(1[0-2]|[1-9])月\s*([0-3]?\d)日/g;
+  const datePattern = /(?:(20\d{2})\s*年\s*)?(1[0-2]|[1-9])\s*月\s*([0-3]?\d)\s*日/g;
   for (const match of normalized.matchAll(datePattern)) {
     const year = Number(match[1] ?? headerYear);
     const month = Number(match[2] ?? headerMonth);
