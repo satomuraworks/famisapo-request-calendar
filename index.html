@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <title>ファミサポ予定づくり</title>
-    <link rel="stylesheet" href="styles.css?v=20260824-provider-mode" />
+    <link rel="stylesheet" href="styles.css?v=20260824-provider-ocr" />
   </head>
   <body>
     <p id="reset-complete-notice" class="reset-complete-notice" role="status" aria-live="polite" hidden></p>
@@ -249,8 +249,9 @@
             <label>日付<input id="provider-date" type="date" required /></label>
             <div class="time-pair">
               <label>予定開始<input id="provider-planned-start" type="time" required /></label>
-              <label>予定終了<input id="provider-planned-end" type="time" required /></label>
+              <label>利用時間<select id="provider-planned-duration" aria-describedby="provider-planned-end"></select></label>
             </div>
+            <p id="provider-planned-end" class="provider-planned-end" aria-live="polite">予定開始時刻と利用時間を選ぶと、終了予定時刻を表示します。</p>
             <label>利用内容<input id="provider-content" maxlength="100" autocomplete="off" placeholder="送迎、預かり など" /></label>
             <label>備考<textarea id="provider-note" rows="3" maxlength="300" placeholder="必要なメモだけを入力します。個人情報は入力しません。"></textarea></label>
             <label>ステータス<select id="provider-status"></select></label>
@@ -258,6 +259,28 @@
             <button class="button primary full" type="submit">依頼予定を登録</button>
             <p id="provider-form-status" class="status" aria-live="polite"></p>
           </form>
+        </section>
+
+        <section class="card provider-ocr-card" aria-labelledby="provider-ocr-heading">
+          <details class="provider-ocr-details">
+            <summary id="provider-ocr-heading">画像から予定を読み取る<span>確認して仮登録</span></summary>
+            <div class="provider-ocr-content">
+              <p>この機能は、主にファミサポ予定づくりで作成した予定画像の読み取りを想定しています。画像の見え方によっては日付を正しく読み取れない場合があります。登録前に必ず内容を確認してください。</p>
+              <label class="provider-image-picker" for="provider-ocr-image">画像を選択<input id="provider-ocr-image" type="file" accept="image/png,image/jpeg,image/webp" /></label>
+              <button id="provider-ocr-read" class="button secondary full" type="button">画像から予定を読み取る</button>
+              <p id="provider-ocr-status" class="status" aria-live="polite"></p>
+              <div id="provider-ocr-results" class="provider-ocr-results" hidden>
+                <h3>読み取り結果を確認</h3>
+                <p>日付候補は編集・削除できます。利用会員名、開始時刻、利用時間、利用内容、備考、ステータスは上の登録欄で確認・修正してから登録してください。</p>
+                <div id="provider-ocr-date-list" class="provider-ocr-date-list"></div>
+                <div class="provider-ocr-add-date"><input id="provider-ocr-add-date" type="date" aria-label="日付候補を追加" /><button id="provider-ocr-add-date-button" class="button secondary" type="button">日付を追加</button></div>
+                <div class="provider-ocr-actions">
+                  <button id="provider-ocr-confirm" class="button primary" type="button">確認して登録する</button>
+                  <button id="provider-ocr-quick" class="button secondary" type="button">この内容で一括登録</button>
+                </div>
+              </div>
+            </div>
+          </details>
         </section>
 
         <section class="card" aria-labelledby="provider-calendar-heading">
@@ -340,6 +363,6 @@
       <p id="app-version"></p>
       <p id="app-updated-at"></p>
     </footer>
-    <script type="module" src="app.js?v=20260824-provider-mode"></script>
+    <script type="module" src="app.js?v=20260824-provider-ocr"></script>
   </body>
 </html>

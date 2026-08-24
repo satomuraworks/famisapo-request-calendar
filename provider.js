@@ -1,10 +1,13 @@
 import {
   calculateEstimate,
+  formatDuration,
   formatYen,
+  normalizeDurationHours,
   normalizeUsageSettings,
   SETTINGS_STORAGE_KEY,
 } from "./app-utils.js";
 import { JAPANESE_WEEKDAYS, formatJapaneseDate, getMonthDates, japaneseHolidayDates } from "./date-utils.js";
+import { durationHoursBetween, endTimeForDuration, extractScheduleDatesFromOcr, timeToMinutes } from "./provider-utils.js";
 
 export const PROVIDER_SETTINGS_STORAGE_KEY = "famisapo-request-calendar.provider-settings.v1";
 export const PROVIDER_SCHEDULES_STORAGE_KEY = "famisapo-request-calendar.provider-schedules.v1";
@@ -53,12 +56,15 @@ function normalizeStatus(value) {
 
 function normalizeSchedule(value) {
   if (!value || typeof value !== "object" || !isIsoDate(value.date) || !isTime(value.plannedStart) || !isTime(value.plannedEnd)) return null;
+  const plannedDurationHours = normalizeDurationHours(value.plannedDurationHours, durationHours(value.plannedStart, value.plannedEnd));
+  const calculatedEnd = endTimeForDuration(value.plannedStart, plannedDurationHours).time;
   return {
     id: typeof value.id === "string" ? value.id : crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
     memberName: typeof value.memberName === "string" ? value.memberName.slice(0, 40) : "",
     date: value.date,
     plannedStart: value.plannedStart,
-    plannedEnd: value.plannedEnd,
+    plannedEnd: calculatedEnd || value.plannedEnd,
+    plannedDurationHours,
     actualStart: isTime(value.actualStart) ? value.actualStart : value.plannedStart,
     actualEnd: isTime(value.actualEnd) ? value.actualEnd : value.plannedEnd,
     content: typeof value.content === "string" ? value.content.slice(0, 100) : "",
@@ -104,14 +110,11 @@ function monthLabel(month) {
 }
 
 function timeMinutes(value) {
-  const [hours, minutes] = value.split(":").map(Number);
-  return hours * 60 + minutes;
+  return timeToMinutes(value) ?? 0;
 }
 
 function durationHours(start, end) {
-  if (!isTime(start) || !isTime(end)) return 0;
-  const minutes = timeMinutes(end) - timeMinutes(start);
-  return minutes > 0 ? minutes / 60 : 0;
+  return isTime(start) && isTime(end) ? durationHoursBetween(start, end, 0) : 0;
 }
 
 function shortDate(date) {
@@ -138,7 +141,8 @@ export function initializeProviderMode() {
     month: document.querySelector("#provider-target-month"),
     dashboardMonth: document.querySelector("#provider-dashboard-month"), dashboard: document.querySelector("#provider-dashboard"),
     form: document.querySelector("#provider-schedule-form"), memberName: document.querySelector("#provider-member-name"), date: document.querySelector("#provider-date"),
-    plannedStart: document.querySelector("#provider-planned-start"), plannedEnd: document.querySelector("#provider-planned-end"), content: document.querySelector("#provider-content"), note: document.querySelector("#provider-note"), status: document.querySelector("#provider-status"), availabilityWarning: document.querySelector("#provider-availability-warning"), formStatus: document.querySelector("#provider-form-status"),
+    plannedStart: document.querySelector("#provider-planned-start"), plannedDuration: document.querySelector("#provider-planned-duration"), plannedEnd: document.querySelector("#provider-planned-end"), content: document.querySelector("#provider-content"), note: document.querySelector("#provider-note"), status: document.querySelector("#provider-status"), availabilityWarning: document.querySelector("#provider-availability-warning"), formStatus: document.querySelector("#provider-form-status"),
+    ocrImage: document.querySelector("#provider-ocr-image"), ocrRead: document.querySelector("#provider-ocr-read"), ocrStatus: document.querySelector("#provider-ocr-status"), ocrResults: document.querySelector("#provider-ocr-results"), ocrDateList: document.querySelector("#provider-ocr-date-list"), ocrAddDate: document.querySelector("#provider-ocr-add-date"), ocrAddDateButton: document.querySelector("#provider-ocr-add-date-button"), ocrConfirm: document.querySelector("#provider-ocr-confirm"), ocrQuick: document.querySelector("#provider-ocr-quick"),
     calendar: document.querySelector("#provider-calendar"), calendarLabel: document.querySelector("#provider-calendar-label"), selectedDateLabel: document.querySelector("#provider-selected-date-label"), dayList: document.querySelector("#provider-day-list"),
     agreementText: document.querySelector("#provider-agreement-text"), agreementCopy: document.querySelector("#provider-copy-agreement"), agreementStatus: document.querySelector("#provider-agreement-status"),
     submissionText: document.querySelector("#provider-submission-text"), submissionCopy: document.querySelector("#provider-copy-submission"), markSubmitted: document.querySelector("#provider-mark-submitted"), submissionStatus: document.querySelector("#provider-submission-status"),
@@ -150,6 +154,7 @@ export function initializeProviderMode() {
   let settings = normalizeSettings(readJson(PROVIDER_SETTINGS_STORAGE_KEY, {}));
   let settlements = readJson(PROVIDER_SETTLEMENTS_STORAGE_KEY, {});
   let selectedDate = "";
+  let ocrDateCandidates = [];
 
   const currentMonth = () => elements.month.value;
   const monthSchedules = () => schedules.filter((schedule) => dateMonth(schedule.date) === currentMonth()).sort((a, b) => a.date.localeCompare(b.date) || a.plannedStart.localeCompare(b.plannedStart));
@@ -172,6 +177,144 @@ export function initializeProviderMode() {
       option.selected = status === selected;
       return option;
     }));
+  }
+
+  function renderPlannedDurationOptions(selectedDuration = 1) {
+    elements.plannedDuration.replaceChildren(...Array.from({ length: 48 }, (_, index) => {
+      const duration = (index + 1) / 2;
+      const option = document.createElement("option");
+      option.value = String(duration);
+      option.textContent = formatDuration(duration);
+      option.selected = duration === selectedDuration;
+      return option;
+    }));
+  }
+
+  function currentPlannedDuration() {
+    return normalizeDurationHours(Number(elements.plannedDuration.value), 1);
+  }
+
+  function plannedEndInfo() {
+    return endTimeForDuration(elements.plannedStart.value, currentPlannedDuration());
+  }
+
+  function renderPlannedEnd() {
+    const { time, nextDay } = plannedEndInfo();
+    elements.plannedEnd.textContent = time
+      ? `終了予定時刻：${nextDay ? "翌日 " : ""}${time}`
+      : "予定開始時刻と利用時間を選ぶと、終了予定時刻を表示します。";
+  }
+
+  function makeScheduleFromForm(date) {
+    const duration = currentPlannedDuration();
+    const { time: plannedEnd } = endTimeForDuration(elements.plannedStart.value, duration);
+    if (!isIsoDate(date) || !isTime(elements.plannedStart.value) || !plannedEnd) return null;
+    return normalizeSchedule({
+      id: crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
+      memberName: elements.memberName.value.trim(), date, plannedStart: elements.plannedStart.value, plannedEnd, plannedDurationHours: duration,
+      actualStart: elements.plannedStart.value, actualEnd: plannedEnd, content: elements.content.value.trim(), note: elements.note.value.trim(), status: elements.status.value, createdAt: new Date().toISOString(),
+    });
+  }
+
+  function canRegisterFromForm() {
+    return Boolean(elements.memberName.value.trim() && isTime(elements.plannedStart.value) && plannedEndInfo().time);
+  }
+
+  function clearScheduleForm() {
+    elements.form.reset();
+    renderStatusOptions(elements.status, "依頼あり");
+    renderPlannedDurationOptions(1);
+    renderPlannedEnd();
+  }
+
+  function renderOcrCandidates() {
+    elements.ocrDateList.replaceChildren();
+    if (!ocrDateCandidates.length) {
+      elements.ocrDateList.textContent = "日付候補はありません。日付を追加してください。";
+      return;
+    }
+    ocrDateCandidates.forEach((date) => {
+      const row = document.createElement("div");
+      row.className = "provider-ocr-date-row";
+      const input = document.createElement("input"); input.type = "date"; input.value = date;
+      const remove = document.createElement("button"); remove.type = "button"; remove.className = "button danger"; remove.textContent = "削除";
+      remove.addEventListener("click", () => {
+        ocrDateCandidates = currentOcrCandidateDates().filter((candidate) => candidate !== input.value);
+        renderOcrCandidates();
+      });
+      input.addEventListener("change", () => {
+        ocrDateCandidates = [...new Set([...elements.ocrDateList.querySelectorAll("input[type='date']")].map((field) => field.value).filter(isIsoDate))].sort();
+      });
+      row.append(input, remove);
+      elements.ocrDateList.append(row);
+    });
+  }
+
+  function currentOcrCandidateDates() {
+    return [...new Set([...elements.ocrDateList.querySelectorAll("input[type='date']")].map((input) => input.value).filter(isIsoDate))].sort();
+  }
+
+  async function recognizeImageText(file) {
+    if ("TextDetector" in window && "createImageBitmap" in window) {
+      const bitmap = await createImageBitmap(file);
+      try {
+        const detector = new window.TextDetector();
+        const blocks = await detector.detect(bitmap);
+        return blocks.map((block) => block.rawValue).join("\n");
+      } finally {
+        bitmap.close();
+      }
+    }
+    const tesseract = await import("https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.esm.min.js");
+    const createWorker = tesseract.createWorker ?? tesseract.default?.createWorker;
+    if (typeof createWorker !== "function") throw new Error("OCRライブラリを初期化できませんでした。");
+    const worker = await createWorker("jpn");
+    try {
+      const { data } = await worker.recognize(file);
+      return data.text;
+    } finally {
+      await worker.terminate();
+    }
+  }
+
+  async function readOcrImage() {
+    const file = elements.ocrImage.files?.[0];
+    if (!file) { elements.ocrStatus.textContent = "予定画像を選択してください。"; return; }
+    elements.ocrRead.disabled = true;
+    elements.ocrStatus.textContent = "画像から日付候補を読み取っています。画像は確認前には保存されません。";
+    try {
+      const text = await recognizeImageText(file);
+      const result = extractScheduleDatesFromOcr(text, currentMonth());
+      ocrDateCandidates = result.dates;
+      renderOcrCandidates();
+      elements.ocrResults.hidden = false;
+      elements.ocrStatus.textContent = result.dates.length
+        ? `${result.dates.length}件の日付候補を読み取りました。${result.warnings.join(" ")}`
+        : result.warnings.join(" ");
+    } catch {
+      ocrDateCandidates = [];
+      renderOcrCandidates();
+      elements.ocrResults.hidden = false;
+      elements.ocrStatus.textContent = "画像を読み取れませんでした。日付を手入力して登録してください。";
+    } finally {
+      elements.ocrRead.disabled = false;
+    }
+  }
+
+  function registerOcrCandidates() {
+    const dates = currentOcrCandidateDates();
+    if (!dates.length) { elements.ocrStatus.textContent = "登録する日付を1件以上追加してください。"; return; }
+    if (!canRegisterFromForm()) { elements.ocrStatus.textContent = "上の登録欄で利用会員の表示名、予定開始時刻、利用時間を確認してください。"; return; }
+    const newSchedules = dates.map(makeScheduleFromForm).filter(Boolean);
+    schedules.push(...newSchedules);
+    if (!persistSchedules()) { elements.ocrStatus.textContent = "端末内に保存できませんでした。"; return; }
+    selectedDate = newSchedules[0]?.date ?? "";
+    ocrDateCandidates = [];
+    elements.ocrResults.hidden = true;
+    elements.ocrImage.value = "";
+    elements.ocrStatus.textContent = `${newSchedules.length}件を新しい予定として登録しました。既存予定は変更していません。`;
+    clearScheduleForm();
+    renderAll();
   }
 
   function renderDashboard() {
@@ -352,7 +495,7 @@ export function initializeProviderMode() {
   function updateAvailabilityWarning() {
     const date = elements.date.value;
     const start = elements.plannedStart.value;
-    const end = elements.plannedEnd.value;
+    const end = plannedEndInfo().time;
     if (!isIsoDate(date) || !isTime(start) || !isTime(end)) { elements.availabilityWarning.textContent = ""; return; }
     const localDate = new Date(`${date}T00:00:00`);
     const key = japaneseHolidayDates(localDate.getFullYear()).has(date) ? "holiday" : String(localDate.getDay());
@@ -368,6 +511,8 @@ export function initializeProviderMode() {
 
   elements.month.value = document.querySelector("#target-month").value;
   renderStatusOptions(elements.status, "依頼あり");
+  renderPlannedDurationOptions(1);
+  renderPlannedEnd();
   renderAvailabilitySettings();
   renderAll();
 
@@ -379,25 +524,32 @@ export function initializeProviderMode() {
     elements.date.value = selectedDate;
     renderCalendar(); renderDayList(); updateAvailabilityWarning();
   });
-  [elements.date, elements.plannedStart, elements.plannedEnd].forEach((input) => input.addEventListener("input", updateAvailabilityWarning));
+  [elements.date, elements.plannedStart].forEach((input) => input.addEventListener("input", () => { renderPlannedEnd(); updateAvailabilityWarning(); }));
+  elements.plannedDuration.addEventListener("change", () => { renderPlannedEnd(); updateAvailabilityWarning(); });
   elements.form.addEventListener("submit", (event) => {
     event.preventDefault();
-    if (!isIsoDate(elements.date.value) || !isTime(elements.plannedStart.value) || !isTime(elements.plannedEnd.value) || durationHours(elements.plannedStart.value, elements.plannedEnd.value) <= 0) {
-      elements.formStatus.textContent = "日付と予定時間を確認してください。終了時刻は開始時刻より後にしてください。";
+    if (!isIsoDate(elements.date.value) || !canRegisterFromForm()) {
+      elements.formStatus.textContent = "利用会員の表示名、日付、予定開始時刻、利用時間を確認してください。";
       return;
     }
-    const schedule = normalizeSchedule({
-      id: crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
-      memberName: elements.memberName.value.trim(), date: elements.date.value, plannedStart: elements.plannedStart.value, plannedEnd: elements.plannedEnd.value,
-      actualStart: elements.plannedStart.value, actualEnd: elements.plannedEnd.value, content: elements.content.value.trim(), note: elements.note.value.trim(), status: elements.status.value, createdAt: new Date().toISOString(),
-    });
+    const schedule = makeScheduleFromForm(elements.date.value);
     schedules.push(schedule);
     if (!persistSchedules()) { elements.formStatus.textContent = "端末内に保存できませんでした。"; return; }
     selectedDate = schedule.date;
-    elements.form.reset(); renderStatusOptions(elements.status, "依頼あり");
+    clearScheduleForm();
     elements.formStatus.textContent = "依頼予定を登録しました。";
     renderAll();
   });
+  elements.ocrRead.addEventListener("click", readOcrImage);
+  elements.ocrAddDateButton.addEventListener("click", () => {
+    if (!isIsoDate(elements.ocrAddDate.value)) { elements.ocrStatus.textContent = "追加する日付を選択してください。"; return; }
+    ocrDateCandidates = [...new Set([...currentOcrCandidateDates(), elements.ocrAddDate.value])].sort();
+    elements.ocrAddDate.value = "";
+    elements.ocrResults.hidden = false;
+    renderOcrCandidates();
+  });
+  elements.ocrConfirm.addEventListener("click", registerOcrCandidates);
+  elements.ocrQuick.addEventListener("click", registerOcrCandidates);
   elements.agreementCopy.addEventListener("click", () => copyText(elements.agreementText.value, elements.agreementStatus));
   elements.submissionCopy.addEventListener("click", () => copyText(elements.submissionText.value, elements.submissionStatus));
   elements.markSubmitted.addEventListener("click", () => {

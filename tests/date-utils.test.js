@@ -18,6 +18,7 @@ import {
   sendStatusLabel,
 } from "../app-utils.js";
 import { APP_UPDATED_AT, APP_VERSION } from "../version.js";
+import { durationHoursBetween, endTimeForDuration, extractScheduleDatesFromOcr } from "../provider-utils.js";
 
 test("うるう年の2月の日数を返す", () => {
   assert.equal(daysInMonth(2028, 1), 29);
@@ -158,4 +159,18 @@ test("最新版URLはvパラメータを付与または置き換える", () => {
 test("バージョンと更新日はversion.jsから取得する", () => {
   assert.equal(APP_VERSION, "1.5.0");
   assert.equal(APP_UPDATED_AT, "2026-08-24");
+});
+
+test("受ける側の予定終了時刻と既存時刻の利用時間を30分単位で扱う", () => {
+  assert.deepEqual(endTimeForDuration("16:00", 1.5), { time: "17:30", nextDay: false });
+  assert.deepEqual(endTimeForDuration("23:30", 1), { time: "00:30", nextDay: true });
+  assert.equal(durationHoursBetween("16:00", "18:30"), 2.5);
+  assert.equal(durationHoursBetween("23:30", "00:30"), 1);
+});
+
+test("OCR文字列から予定画像の日付候補を抽出し、確認不能な日付を分ける", () => {
+  const result = extractScheduleDatesFromOcr("2026年9月 依頼日一覧\n9月3日（木）\n9月7日（月）\n9月31日", "2026-09");
+  assert.deepEqual(result.dates, ["2026-09-03", "2026-09-07"]);
+  assert.match(result.warnings.join(" "), /9月31日/);
+  assert.deepEqual(extractScheduleDatesFromOcr("読み取り失敗", "2026-09").dates, []);
 });
