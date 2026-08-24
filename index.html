@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <title>ファミサポ予定づくり</title>
-    <link rel="stylesheet" href="styles.css?v=20260824-requester-calendar-ui" />
+    <link rel="stylesheet" href="styles.css?v=20260824-requester-message-duration" />
   </head>
   <body>
     <p id="reset-complete-notice" class="reset-complete-notice" role="status" aria-live="polite" hidden></p>
@@ -170,8 +170,12 @@
       <section class="card line-card" aria-labelledby="line-heading">
         <div class="section-heading">
           <h2 id="line-heading">連絡用文章</h2>
-          <button id="copy-button" class="button secondary" type="button">連絡用文章をコピー</button>
+          <div class="line-heading-actions">
+            <label class="line-duration-toggle"><input id="include-duration-in-message" type="checkbox" checked />利用時間を含める</label>
+            <button id="copy-button" class="button secondary" type="button">連絡用文章をコピー</button>
+          </div>
         </div>
+        <p class="line-duration-hint">利用時間が毎月一定の場合は、チェックを外せます。</p>
         <textarea id="line-message" readonly aria-label="連絡用文章"></textarea>
         <p id="copy-status" class="status" aria-live="polite"></p>
       </section>
@@ -373,6 +377,6 @@
       <p id="app-version"></p>
       <p id="app-updated-at"></p>
     </footer>
-    <script type="module" src="app.js?v=20260824-requester-calendar-ui"></script>
+    <script type="module" src="app.js?v=20260824-requester-message-duration"></script>
   </body>
 </html>

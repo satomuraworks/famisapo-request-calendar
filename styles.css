@@ -134,7 +134,7 @@ h2 { margin: 0; font-size: 1.1rem; }
 }
 .day-button[data-weekday="0"] { color: var(--accent); }
 .day-button[data-weekday="6"] { color: #3d5c9d; }
-.day-button.is-selected { color: #fff; background: var(--ink); border-color: var(--ink); }
+.day-button.is-selected { color: #fff; background: var(--ink); border-color: var(--ink); border-radius: 10px; }
 .day-button:focus-visible, .button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .calendar-actions { margin-top: 15px; }
 .provider-calendar { grid-auto-rows: 62px; }
@@ -147,6 +147,7 @@ h2 { margin: 0; font-size: 1.1rem; }
 .provider-day-button.is-draft small { color: #fff; }
 .provider-day-button.is-inspected:not(.is-draft) { outline: 2px solid var(--focus); outline-offset: 1px; }
 .provider-selection-intro { margin-top: -4px; }
+.provider-selection-card > .status { font-weight: 400; }
 .provider-draft-wrap { display: grid; gap: 10px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
 .provider-draft-wrap h3 { margin: 0; font-size: .98rem; }
 .provider-draft-wrap > p { margin: 0; color: var(--muted); font-size: .82rem; line-height: 1.5; }
@@ -254,6 +255,10 @@ h2 { margin: 0; font-size: 1.1rem; }
 .requester-selection-summary { min-height: 1.35em; margin: 16px 0 10px; color: var(--ink); font-size: .88rem; font-weight: 700; line-height: 1.55; }
 .selected-dates li { display: grid; gap: 7px; padding: 9px 10px; background: var(--soft); border-radius: 8px; color: var(--ink); font-size: .92rem; font-weight: 650; }
 .selected-dates .empty { grid-column: 1 / -1; color: var(--muted); font-weight: 400; }
+.line-heading-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.line-duration-toggle { display: flex; align-items: center; gap: 6px; min-height: 36px; color: var(--ink); font-size: .82rem; font-weight: 650; white-space: nowrap; }
+.line-duration-toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
+.line-duration-hint { margin: -5px 0 12px; color: var(--muted); font-size: .8rem; line-height: 1.5; }
 .date-duration { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: .78rem; font-weight: 400; }
 .date-duration select { min-height: 34px; padding: 4px 7px; color: var(--ink); background: #fff; border: 1px solid #aaa; border-radius: 7px; font-size: .86rem; }
 .estimate { display: grid; gap: 7px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
@@ -328,6 +333,9 @@ canvas { display: block; width: 100%; height: auto; border: 1px solid var(--line
   .provider-draft-fields label, .provider-draft-fields label:first-child, .provider-draft-fields label:nth-child(8) { grid-column: auto; }
 }
 @media (max-width: 480px) {
+  .line-card .section-heading { align-items: flex-start; flex-direction: column; }
+  .line-heading-actions { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+  .line-heading-actions .button { flex: 1 1 150px; }
   .provider-availability-row { grid-template-columns: 2.5rem minmax(0, 1fr); gap: 8px; }
   .provider-time-fields { grid-column: 1 / -1; }
   .provider-time-fields label { grid-template-columns: 1fr; gap: 4px; }

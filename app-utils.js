@@ -123,12 +123,12 @@ export function formatDuration(hours) {
   return minutes ? `${wholeHours}時間${minutes}分` : `${wholeHours}時間`;
 }
 
-export function makeLineMessage(year, monthIndex, selectedDates, durationHoursByDate = {}) {
+export function makeLineMessage(year, monthIndex, selectedDates, durationHoursByDate = {}, includeDuration = true) {
   const dates = [...selectedDates].sort();
   if (!dates.length) return "依頼日を選択してください。";
   return `${year}年${monthIndex + 1}月のファミサポ依頼日についてご連絡します。\n\n${dates.map((date) => {
     const durationHours = normalizeDurationHours(durationHoursByDate[date], null);
-    return durationHours === null ? formatJapaneseDate(date) : `${formatJapaneseDate(date)}　${formatDuration(durationHours)}`;
+    return !includeDuration || durationHours === null ? formatJapaneseDate(date) : `${formatJapaneseDate(date)}　${formatDuration(durationHours)}`;
   }).join("\n")}\n\n以上の${dates.length}日間をお願いいたします。\n確認用の画像も添付します。\nご確認よろしくお願いいたします。`;
 }
 

@@ -61,6 +61,7 @@ const elements = {
   priceBreakdownSummary: document.querySelector("#price-breakdown-summary"),
   pricePerVisit: document.querySelector("#price-per-visit"),
   message: document.querySelector("#line-message"),
+  includeDurationInMessage: document.querySelector("#include-duration-in-message"),
   copyButton: document.querySelector("#copy-button"),
   copyStatus: document.querySelector("#copy-status"),
   imageLayout: document.querySelectorAll("input[name='image-layout']"),
@@ -500,7 +501,7 @@ function updateConfirmation() {
   const totalDurationHours = durationHours.reduce((total, duration) => total + duration, 0);
   const hourlyUsageFee = perHour - settings.transportFee;
   elements.cost.textContent = `${count}回（利用料金${formatYen(hourlyUsageFee)}円 × 合計${formatDuration(totalDurationHours)} ＋ 交通費${formatYen(settings.transportFee)}円 × ${count}回） = ${formatYen(calculateEstimateForDurations(durationHours, settings))}円`;
-  elements.message.value = makeLineMessage(getSelectedMonth().year, getSelectedMonth().monthIndex, dates, durationHoursByDate);
+  updateLineMessage(dates, durationHoursByDate);
   elements.copyButton.disabled = count === 0;
   elements.generateButton.disabled = count === 0;
   elements.saveButton.disabled = count === 0 || !storageAvailable;
@@ -512,6 +513,11 @@ function updateConfirmation() {
   } else if (!elements.imageStatus.textContent) {
     elements.imageStatus.textContent = "内容を確認してから画像を生成してください。";
   }
+}
+
+function updateLineMessage(dates = sortedSelection(), durationHoursByDate = selectedDateDurationMap(dates)) {
+  const { year, monthIndex } = getSelectedMonth();
+  elements.message.value = makeLineMessage(year, monthIndex, dates, durationHoursByDate, elements.includeDurationInMessage.checked);
 }
 
 function renderCalendar() {
@@ -794,8 +800,18 @@ function drawImageFooter(ctx, count) {
   drawTextCentered(ctx, "ご確認よろしくお願いいたします。", 1315, "400 32px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", "#444");
 }
 
-function formatDateWithDuration(date, durationHoursByDate) {
-  return `${formatJapaneseDate(date)}　${formatDuration(durationHoursByDate[date])}`;
+function drawDateWithDuration(ctx, date, durationHoursByDate, y, font, x = 540) {
+  const dateText = formatJapaneseDate(date);
+  const durationText = formatDuration(durationHoursByDate[date]);
+  const gap = "　";
+  ctx.font = font;
+  const width = ctx.measureText(dateText).width + ctx.measureText(gap).width + ctx.measureText(durationText).width;
+  const left = x - width / 2;
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#c92a2a";
+  ctx.fillText(dateText, left, y);
+  ctx.fillStyle = "#171717";
+  ctx.fillText(durationText, left + ctx.measureText(dateText + gap).width, y);
 }
 
 function drawListOnly(ctx, dates, durationHoursByDate) {
@@ -805,7 +821,7 @@ function drawListOnly(ctx, dates, durationHoursByDate) {
   const fontSize = Math.min(40, Math.max(17, Math.floor(lineHeight * 0.68)));
   const startY = listTop + ((listHeight - lineHeight * dates.length) / 2) + lineHeight * 0.72;
   dates.forEach((date, index) => {
-    drawTextCentered(ctx, formatDateWithDuration(date, durationHoursByDate), startY + lineHeight * index, `700 ${fontSize}px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif`, "#c92a2a");
+    drawDateWithDuration(ctx, date, durationHoursByDate, startY + lineHeight * index, `700 ${fontSize}px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif`);
   });
 }
 
@@ -862,7 +878,7 @@ function drawListWithCalendar(ctx, dates, durationHoursByDate, listTop) {
     const column = Math.floor(index / rows);
     const row = index % rows;
     const x = column === 0 ? 330 : 750;
-    drawTextCentered(ctx, formatDateWithDuration(date, durationHoursByDate), listTop + 30 + row * lineHeight, `700 ${fontSize}px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif`, "#c92a2a", x);
+    drawDateWithDuration(ctx, date, durationHoursByDate, listTop + 30 + row * lineHeight, `700 ${fontSize}px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif`, x);
   });
 }
 
@@ -1025,6 +1041,7 @@ elements.selectedDates.addEventListener("change", (event) => {
   else setSelectedDateDuration(durationSelect.dataset.date, Number(durationSelect.value));
   updateConfirmation();
 });
+elements.includeDurationInMessage.addEventListener("change", updateLineMessage);
 elements.copyButton.addEventListener("click", copyMessage);
 elements.imageLayout.forEach((radio) => radio.addEventListener("change", () => {
   if (radio.checked) invalidateImage("画像形式が変わりました。内容を確認して再生成してください。");

@@ -129,6 +129,9 @@ test("LINE文章に日付、曜日、合計日数を昇順で含め、料金を�
   assert.match(message, /8月3日（月）　2時間/);
   assert.match(message, /8月4日（火）　3時間30分/);
   assert.doesNotMatch(message, /円|料金|内訳|概算|子ども/);
+  const messageWithoutDuration = makeLineMessage(2026, 7, ["2026-08-03"], { "2026-08-03": 2 }, false);
+  assert.match(messageWithoutDuration, /8月3日（月）/);
+  assert.doesNotMatch(messageWithoutDuration, /2時間/);
 });
 
 test("送信状況を個別に扱い、履歴用の表示文言を返す", () => {
