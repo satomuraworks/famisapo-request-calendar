@@ -12,6 +12,7 @@ import { durationHoursBetween, endTimeForDuration, extractScheduleDatesFromOcr, 
 export const PROVIDER_SETTINGS_STORAGE_KEY = "famisapo-request-calendar.provider-settings.v1";
 export const PROVIDER_SCHEDULES_STORAGE_KEY = "famisapo-request-calendar.provider-schedules.v1";
 export const PROVIDER_SETTLEMENTS_STORAGE_KEY = "famisapo-request-calendar.provider-settlements.v1";
+export const PROVIDER_DRAFT_SETTINGS_STORAGE_KEY = "famisapo-request-calendar.provider-draft-settings.v1";
 
 const STATUS_OPTIONS = ["依頼あり", "調整中", "合意済み", "ファミサポ提出済み", "実施済み", "精算済み", "キャンセル"];
 const CHECKLIST_ITEMS = [
@@ -101,6 +102,19 @@ function normalizeSettings(value) {
   return { availability };
 }
 
+function normalizeDraftSettings(value) {
+  const plannedStart = isTime(value?.plannedStart) ? value.plannedStart : "";
+  const plannedDurationHours = normalizeDurationHours(value?.plannedDurationHours, 1);
+  return {
+    memberName: typeof value?.memberName === "string" ? value.memberName.slice(0, 40) : "",
+    plannedStart,
+    plannedDurationHours,
+    content: typeof value?.content === "string" ? value.content.slice(0, 100) : "",
+    note: typeof value?.note === "string" ? value.note.slice(0, 300) : "",
+    status: normalizeStatus(value?.status),
+  };
+}
+
 function normalizeSettlement(value) {
   const confirmedAmount = Number(value?.confirmedAmount);
   return {
@@ -155,27 +169,27 @@ export function initializeProviderMode() {
     month: document.querySelector("#provider-target-month"),
     dashboardMonth: document.querySelector("#provider-dashboard-month"), dashboardSummary: document.querySelector("#provider-dashboard-summary"), dashboard: document.querySelector("#provider-dashboard"),
     form: document.querySelector("#provider-schedule-form"), memberName: document.querySelector("#provider-member-name"),
-    plannedStart: document.querySelector("#provider-planned-start"), plannedDuration: document.querySelector("#provider-planned-duration"), plannedEnd: document.querySelector("#provider-planned-end"), content: document.querySelector("#provider-content"), contentOther: document.querySelector("#provider-content-other"), contentOtherWrap: document.querySelector("#provider-content-other-wrap"), note: document.querySelector("#provider-note"), noteWrap: document.querySelector("#provider-note-wrap"), noteToggle: document.querySelector("#provider-toggle-note"), status: document.querySelector("#provider-status"), availabilityWarning: document.querySelector("#provider-availability-warning"), formStatus: document.querySelector("#provider-form-status"), registerSelected: document.querySelector("#provider-register-selected"),
+    plannedStart: document.querySelector("#provider-planned-start"), plannedDuration: document.querySelector("#provider-planned-duration"), plannedEnd: document.querySelector("#provider-planned-end"), content: document.querySelector("#provider-content"), contentOther: document.querySelector("#provider-content-other"), contentOtherWrap: document.querySelector("#provider-content-other-wrap"), note: document.querySelector("#provider-note"), status: document.querySelector("#provider-status"), availabilityWarning: document.querySelector("#provider-availability-warning"), saveDraftSettings: document.querySelector("#provider-save-draft-settings"), draftSettingsStatus: document.querySelector("#provider-draft-settings-status"), formStatus: document.querySelector("#provider-form-status"), registerSelected: document.querySelector("#provider-register-selected"),
     ocrImage: document.querySelector("#provider-ocr-image"), ocrRead: document.querySelector("#provider-ocr-read"), ocrStatus: document.querySelector("#provider-ocr-status"),
-    calendar: document.querySelector("#provider-calendar"), calendarLabel: document.querySelector("#provider-calendar-label"), clearSelection: document.querySelector("#provider-clear-selection"), selectionSummary: document.querySelector("#provider-selection-summary"), draftWrap: document.querySelector("#provider-draft-wrap"), draftList: document.querySelector("#provider-draft-list"), selectedDateLabel: document.querySelector("#provider-selected-date-label"), dayList: document.querySelector("#provider-day-list"),
-    agreementText: document.querySelector("#provider-agreement-text"), agreementCopy: document.querySelector("#provider-copy-agreement"), agreementStatus: document.querySelector("#provider-agreement-status"),
-    submissionText: document.querySelector("#provider-submission-text"), submissionCopy: document.querySelector("#provider-copy-submission"), markSubmitted: document.querySelector("#provider-mark-submitted"), submissionStatus: document.querySelector("#provider-submission-status"),
+    calendar: document.querySelector("#provider-calendar"), calendarLabel: document.querySelector("#provider-calendar-label"), clearSelection: document.querySelector("#provider-clear-selection"), applyDraftSettings: document.querySelector("#provider-apply-draft-settings"), selectionSummary: document.querySelector("#provider-selection-summary"), draftWrap: document.querySelector("#provider-draft-wrap"), draftList: document.querySelector("#provider-draft-list"), selectedDateLabel: document.querySelector("#provider-selected-date-label"), dayList: document.querySelector("#provider-day-list"),
+    agreementText: document.querySelector("#provider-agreement-text"), agreementIncludeContent: document.querySelector("#provider-agreement-include-content"), agreementCopy: document.querySelector("#provider-copy-agreement"), agreementStatus: document.querySelector("#provider-agreement-status"),
     settlementList: document.querySelector("#provider-settlement-list"), estimateTotal: document.querySelector("#provider-estimate-total"), confirmedAmount: document.querySelector("#provider-confirmed-amount"), difference: document.querySelector("#provider-difference"), saveSettlement: document.querySelector("#provider-save-settlement"), notificationText: document.querySelector("#provider-notification-text"), notificationCopy: document.querySelector("#provider-copy-notification"), settlementStatus: document.querySelector("#provider-settlement-status"), checklist: document.querySelector("#provider-checklist"),
     availabilitySettings: document.querySelector("#provider-availability-settings"), saveSettings: document.querySelector("#provider-save-settings"), settingsStatus: document.querySelector("#provider-settings-status"),
     resetSettings: document.querySelector("#provider-reset-settings"), deleteMonth: document.querySelector("#provider-delete-month"), deleteAll: document.querySelector("#provider-delete-all"), maintenanceStatus: document.querySelector("#provider-maintenance-status"),
   };
   let schedules = readJson(PROVIDER_SCHEDULES_STORAGE_KEY, []).map(normalizeProviderSchedule).filter(Boolean);
   let settings = normalizeSettings(readJson(PROVIDER_SETTINGS_STORAGE_KEY, {}));
+  let draftSettings = normalizeDraftSettings(readJson(PROVIDER_DRAFT_SETTINGS_STORAGE_KEY, {}));
   let settlements = readJson(PROVIDER_SETTLEMENTS_STORAGE_KEY, {});
   let selectedDraftDates = new Set();
   let draftOverrides = new Map();
-  let noteExpanded = false;
 
   const currentMonth = () => elements.month.value;
   const monthSchedules = () => schedules.filter((schedule) => dateMonth(schedule.date) === currentMonth()).sort((a, b) => a.date.localeCompare(b.date) || a.plannedStart.localeCompare(b.plannedStart));
   const currentSettlement = () => normalizeSettlement(settlements[currentMonth()]);
   const persistSchedules = () => writeJson(PROVIDER_SCHEDULES_STORAGE_KEY, schedules);
   const persistSettings = () => writeJson(PROVIDER_SETTINGS_STORAGE_KEY, settings);
+  const persistDraftSettings = () => writeJson(PROVIDER_DRAFT_SETTINGS_STORAGE_KEY, draftSettings);
   const persistSettlements = () => writeJson(PROVIDER_SETTLEMENTS_STORAGE_KEY, settlements);
   const requesterSettings = () => normalizeUsageSettings(readJson(SETTINGS_STORAGE_KEY, {}));
 
@@ -238,11 +252,6 @@ export function initializeProviderMode() {
     elements.contentOther.required = isOther;
   }
 
-  function renderNoteField() {
-    elements.noteWrap.hidden = !noteExpanded;
-    elements.noteToggle.textContent = noteExpanded ? "備考を閉じる" : "備考を追加する";
-  }
-
   function currentPlannedDuration() {
     return normalizeDurationHours(Number(elements.plannedDuration.value), 1);
   }
@@ -268,6 +277,32 @@ export function initializeProviderMode() {
       note: elements.note.value.trim(),
       status: elements.status.value,
     };
+  }
+
+  function draftSettingsFromForm() {
+    return normalizeDraftSettings({
+      memberName: elements.memberName.value.trim(),
+      plannedStart: elements.plannedStart.value,
+      plannedDurationHours: currentPlannedDuration(),
+      content: contentFromFields(elements.content, elements.contentOther),
+      note: elements.note.value.trim(),
+      status: elements.status.value,
+    });
+  }
+
+  function applyDraftSettings(value) {
+    const saved = normalizeDraftSettings(value);
+    elements.memberName.value = saved.memberName;
+    renderPlannedStartOptions(elements.plannedStart, saved.plannedStart);
+    renderPlannedDurationOptions(saved.plannedDurationHours);
+    const contentChoice = renderContentOptions(elements.content, saved.content);
+    elements.contentOther.value = contentChoice === "その他" ? saved.content : "";
+    elements.note.value = saved.note;
+    renderStatusOptions(elements.status, saved.status);
+    renderContentOther();
+    renderPlannedEnd();
+    updateAvailabilityWarning();
+    renderDraftList();
   }
 
   function draftForDate(date) {
@@ -297,9 +332,7 @@ export function initializeProviderMode() {
     renderContentOptions(elements.content);
     elements.contentOther.value = "";
     elements.note.value = "";
-    noteExpanded = false;
     renderContentOther();
-    renderNoteField();
     renderPlannedEnd();
   }
 
@@ -565,21 +598,10 @@ export function initializeProviderMode() {
 
   function renderAgreement() {
     const rows = monthSchedules().filter((row) => !["キャンセル"].includes(row.status));
+    const includeContent = elements.agreementIncludeContent.checked;
     elements.agreementText.value = rows.length
-      ? `${monthLabel(currentMonth())}の予定はこちらでお願いします。\n\n${rows.map((row) => `${shortDate(row.date)} ${row.plannedStart}〜${row.plannedEnd}${row.content ? `　${row.content}` : ""}`).join("\n")}`
+      ? `${monthLabel(currentMonth())}の予定はこちらでお願いします。\n\n${rows.map((row) => `${shortDate(row.date)} ${row.plannedStart}〜${row.plannedEnd}${includeContent && row.content ? `　${row.content}` : ""}`).join("\n")}`
       : "予定を登録すると、確認文章を作成できます。";
-  }
-
-  function submissionRows() {
-    return monthSchedules().filter((row) => row.status === "合意済み");
-  }
-
-  function renderSubmission() {
-    const rows = submissionRows();
-    elements.submissionText.value = rows.length
-      ? `${monthLabel(currentMonth())}利用予定\n\n${rows.map((row) => `${shortDate(row.date)} ${row.plannedStart}〜${row.plannedEnd}${row.memberName ? `　${row.memberName}` : ""}`).join("\n")}`
-      : "合意済みで未提出の予定はありません。";
-    elements.markSubmitted.disabled = !rows.length;
   }
 
   function settlementRows() {
@@ -649,7 +671,7 @@ export function initializeProviderMode() {
   }
 
   function renderAll() {
-    renderDashboard(); renderCalendar(); renderDraftList(); renderDayList(); renderAgreement(); renderSubmission(); renderSettlement(); renderChecklist(); updateAvailabilityWarning();
+    renderDashboard(); renderCalendar(); renderDraftList(); renderDayList(); renderAgreement(); renderSettlement(); renderChecklist(); updateAvailabilityWarning();
   }
 
   elements.month.value = document.querySelector("#target-month").value;
@@ -658,7 +680,6 @@ export function initializeProviderMode() {
   renderPlannedDurationOptions(1);
   renderContentOptions(elements.content);
   renderContentOther();
-  renderNoteField();
   renderPlannedEnd();
   renderAvailabilitySettings();
   renderAll();
@@ -675,7 +696,20 @@ export function initializeProviderMode() {
     renderAll();
   });
   elements.clearSelection.addEventListener("click", () => { selectedDraftDates = new Set(); draftOverrides = new Map(); elements.draftWrap.open = false; renderAll(); });
-  elements.noteToggle.addEventListener("click", () => { noteExpanded = !noteExpanded; renderNoteField(); });
+  elements.saveDraftSettings.addEventListener("click", () => {
+    draftSettings = draftSettingsFromForm();
+    elements.draftSettingsStatus.textContent = persistDraftSettings() ? "利用設定を保存しました。" : "端末内に保存できませんでした。";
+  });
+  elements.applyDraftSettings.addEventListener("click", () => {
+    const saved = readJson(PROVIDER_DRAFT_SETTINGS_STORAGE_KEY, null);
+    if (!saved || typeof saved !== "object") {
+      elements.formStatus.textContent = "保存済みの利用設定はありません。";
+      return;
+    }
+    draftSettings = normalizeDraftSettings(saved);
+    applyDraftSettings(draftSettings);
+    elements.formStatus.textContent = "保存した利用設定を反映しました。日付ごとの変更はそのままです。";
+  });
   elements.plannedStart.addEventListener("change", () => { renderPlannedEnd(); updateAvailabilityWarning(); renderDraftList(); });
   elements.plannedDuration.addEventListener("change", () => { renderPlannedEnd(); updateAvailabilityWarning(); renderDraftList(); });
   elements.content.addEventListener("change", () => { renderContentOther(); renderDraftList(); });
@@ -700,15 +734,8 @@ export function initializeProviderMode() {
     renderAll();
   });
   elements.ocrRead.addEventListener("click", readOcrImage);
+  elements.agreementIncludeContent.addEventListener("change", renderAgreement);
   elements.agreementCopy.addEventListener("click", () => copyText(elements.agreementText.value, elements.agreementStatus));
-  elements.submissionCopy.addEventListener("click", () => copyText(elements.submissionText.value, elements.submissionStatus));
-  elements.markSubmitted.addEventListener("click", () => {
-    const rows = submissionRows();
-    if (!rows.length || !window.confirm(`${rows.length}件を「ファミサポ提出済み」に変更しますか？`)) return;
-    const ids = new Set(rows.map((row) => row.id));
-    schedules = schedules.map((row) => ids.has(row.id) ? { ...row, status: "ファミサポ提出済み" } : row);
-    if (persistSchedules()) { elements.submissionStatus.textContent = "提出済みに変更しました。"; renderAll(); }
-  });
   elements.saveSettlement.addEventListener("click", () => {
     const value = elements.confirmedAmount.valueAsNumber;
     if (!Number.isInteger(value) || value < 0) { elements.settlementStatus.textContent = "ファミサポ確定金額は0円以上の整数で入力してください。"; return; }
@@ -743,8 +770,8 @@ export function initializeProviderMode() {
   elements.deleteAll.addEventListener("click", () => {
     if (!window.confirm("協力会員側の予定、設定、月末事務の全データを削除しますか？ この操作は元に戻せません。")) return;
     try {
-      window.localStorage.removeItem(PROVIDER_SETTINGS_STORAGE_KEY); window.localStorage.removeItem(PROVIDER_SCHEDULES_STORAGE_KEY); window.localStorage.removeItem(PROVIDER_SETTLEMENTS_STORAGE_KEY);
-      schedules = []; settings = normalizeSettings({}); settlements = {}; renderAvailabilitySettings(); renderAll(); elements.maintenanceStatus.textContent = "協力会員側の全データを削除しました。";
+      window.localStorage.removeItem(PROVIDER_SETTINGS_STORAGE_KEY); window.localStorage.removeItem(PROVIDER_DRAFT_SETTINGS_STORAGE_KEY); window.localStorage.removeItem(PROVIDER_SCHEDULES_STORAGE_KEY); window.localStorage.removeItem(PROVIDER_SETTLEMENTS_STORAGE_KEY);
+      schedules = []; settings = normalizeSettings({}); draftSettings = normalizeDraftSettings({}); settlements = {}; renderAvailabilitySettings(); renderAll(); elements.maintenanceStatus.textContent = "協力会員側の全データを削除しました。";
     } catch { elements.maintenanceStatus.textContent = "削除できませんでした。"; }
   });
 }

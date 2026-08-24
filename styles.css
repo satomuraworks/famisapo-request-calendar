@@ -204,8 +204,17 @@ h2 { margin: 0; font-size: 1.1rem; }
 .provider-dashboard-card { display: grid; gap: 4px; min-height: 76px; padding: 12px; background: var(--soft); border: 1px solid var(--line); border-radius: 10px; }
 .provider-dashboard-card span { color: var(--muted); font-size: .78rem; }
 .provider-dashboard-card strong { font-size: 1.18rem; font-variant-numeric: tabular-nums; }
-.provider-form { display: grid; gap: 14px; margin-top: 16px; }
+.provider-settings-details { margin: -20px; }
+.provider-settings-details summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; padding: 20px; cursor: pointer; font-size: 1.1rem; font-weight: 700; list-style: none; }
+.provider-settings-details summary::-webkit-details-marker { display: none; }
+.provider-settings-details summary::after { content: "＋"; flex: 0 0 auto; color: var(--muted); font-size: 1.4rem; font-weight: 400; }
+.provider-settings-details[open] summary { border-bottom: 1px solid var(--line); }
+.provider-settings-details[open] summary::after { content: "−"; }
+.provider-settings-details summary span { color: var(--muted); font-size: .76rem; font-weight: 400; line-height: 1.45; text-align: right; }
+.provider-settings-content { display: grid; gap: 16px; padding: 18px 20px 20px; }
+.provider-form { display: grid; gap: 14px; margin: 0; }
 .provider-form > label { display: grid; gap: 6px; color: var(--ink); font-size: .9rem; font-weight: 700; }
+.provider-form > label[hidden] { display: none; }
 .provider-form input, .provider-form select, .provider-form textarea { width: 100%; min-height: 46px; padding: 9px 11px; color: var(--ink); background: #fff; border: 1px solid #aaa; border-radius: 9px; font-weight: 400; }
 .provider-form textarea { min-height: 84px; resize: vertical; }
 .time-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -232,6 +241,10 @@ h2 { margin: 0; font-size: 1.1rem; }
 .provider-ocr-date-row .button { min-width: 58px; }
 .provider-ocr-add-date { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .provider-ocr-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.agreement-heading-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.agreement-heading-actions .button { white-space: nowrap; }
+.agreement-content-toggle { display: flex; align-items: center; gap: 6px; min-height: 36px; color: var(--ink); font-size: .82rem; font-weight: 650; white-space: nowrap; }
+.agreement-content-toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
 .provider-settlement-list { display: grid; gap: 8px; margin-top: 14px; }
 .provider-settlement-list:empty { display: none; }
 .provider-settlement-item { display: grid; gap: 3px; padding: 10px 12px; background: var(--soft); border-radius: 9px; }
@@ -339,6 +352,9 @@ canvas { display: block; width: 100%; height: auto; border: 1px solid var(--line
   .provider-dashboard, .provider-dashboard-summary { grid-template-columns: 1fr; }
   .time-pair { grid-template-columns: 1fr; }
   .provider-ocr-details summary, .provider-ocr-content { padding: 12px; }
+  .provider-settings-details { margin: -16px; }
+  .provider-settings-details summary { padding: 16px; }
+  .provider-settings-content { padding: 16px; }
   .provider-ocr-actions { grid-template-columns: 1fr; }
   .provider-draft-fields { grid-template-columns: 1fr; }
   .provider-draft-fields label, .provider-draft-fields label:first-child, .provider-draft-fields label:nth-child(8) { grid-column: auto; }
@@ -347,6 +363,8 @@ canvas { display: block; width: 100%; height: auto; border: 1px solid var(--line
   .line-card .section-heading { align-items: flex-start; flex-direction: column; }
   .line-heading-actions { width: 100%; justify-content: space-between; flex-wrap: wrap; }
   .line-heading-actions .button { flex: 0 1 auto; min-width: 165px; }
+  .agreement-heading-actions { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+  .agreement-heading-actions .button { flex: 0 1 auto; min-width: 140px; }
   .provider-availability-row { grid-template-columns: 2.5rem minmax(0, 1fr); gap: 8px; }
   .provider-time-fields { grid-column: 1 / -1; }
   .provider-time-fields label { grid-template-columns: 1fr; gap: 4px; }

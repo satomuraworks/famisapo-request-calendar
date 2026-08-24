@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <title>ファミサポ予定づくり</title>
-    <link rel="stylesheet" href="styles.css?v=20260825-member-role-labels" />
+    <link rel="stylesheet" href="styles.css?v=20260825-provider-saved-settings" />
   </head>
   <body>
     <p id="reset-complete-notice" class="reset-complete-notice" role="status" aria-live="polite" hidden></p>
@@ -259,30 +259,35 @@
         </section>
 
         <section id="provider-registration-card" class="card provider-registration-card" aria-labelledby="provider-form-heading">
-          <div class="section-heading"><h2 id="provider-form-heading">利用設定</h2><p>選択した日付にまとめて適用</p></div>
-          <details class="provider-ocr-details">
-            <summary id="provider-ocr-heading">画像から日付を追加<span>日付選択を補助</span></summary>
-            <div class="provider-ocr-content">
-              <p>主にファミサポ予定づくりで作成した予定画像の読み取りを想定しています。画像によっては日付を正しく読み取れない場合があります。登録前に必ず内容を確認してください。</p>
-              <label class="provider-image-picker" for="provider-ocr-image">画像を選択<input id="provider-ocr-image" type="file" accept="image/png,image/jpeg,image/webp" /></label>
-              <button id="provider-ocr-read" class="button secondary full" type="button">画像から日付を追加</button>
-              <p id="provider-ocr-status" class="status" aria-live="polite"></p>
+          <details class="provider-settings-details">
+            <summary id="provider-form-heading">利用設定<span>利用会員・開始時間・利用時間・利用内容などをまとめて設定できます</span></summary>
+            <div class="provider-settings-content">
+              <details class="provider-ocr-details">
+                <summary id="provider-ocr-heading">画像から日付を追加<span>日付選択を補助</span></summary>
+                <div class="provider-ocr-content">
+                  <p>主にファミサポ予定づくりで作成した予定画像の読み取りを想定しています。画像によっては日付を正しく読み取れない場合があります。登録前に必ず内容を確認してください。</p>
+                  <label class="provider-image-picker" for="provider-ocr-image">画像を選択<input id="provider-ocr-image" type="file" accept="image/png,image/jpeg,image/webp" /></label>
+                  <button id="provider-ocr-read" class="button secondary full" type="button">画像から日付を追加</button>
+                  <p id="provider-ocr-status" class="status" aria-live="polite"></p>
+                </div>
+              </details>
+              <form id="provider-schedule-form" class="provider-form">
+                <label>利用会員の表示名<input id="provider-member-name" required maxlength="40" autocomplete="off" placeholder="Aさん" /></label>
+                <div class="time-pair">
+                  <label>予定開始<select id="provider-planned-start" required aria-describedby="provider-planned-end"></select></label>
+                  <label>利用時間<select id="provider-planned-duration" aria-describedby="provider-planned-end"></select></label>
+                </div>
+                <p id="provider-planned-end" class="provider-planned-end" aria-live="polite">予定開始時刻と利用時間を選ぶと、終了予定時刻を表示します。</p>
+                <label>利用内容<select id="provider-content"></select></label>
+                <label id="provider-content-other-wrap" hidden>その他の具体的な内容<input id="provider-content-other" maxlength="100" autocomplete="off" placeholder="具体的な利用内容" /></label>
+                <label>備考<textarea id="provider-note" rows="3" maxlength="300" placeholder="必要なメモだけを入力します。個人情報は入力しません。"></textarea></label>
+                <label>ステータス<select id="provider-status"></select></label>
+                <p id="provider-availability-warning" class="provider-warning" aria-live="polite"></p>
+                <button id="provider-save-draft-settings" class="button secondary full" type="button">設定を保存</button>
+                <p id="provider-draft-settings-status" class="status" aria-live="polite"></p>
+              </form>
             </div>
           </details>
-          <form id="provider-schedule-form" class="provider-form">
-            <label>利用会員の表示名<input id="provider-member-name" required maxlength="40" autocomplete="off" placeholder="Aさん" /></label>
-            <div class="time-pair">
-              <label>予定開始<select id="provider-planned-start" required aria-describedby="provider-planned-end"></select></label>
-              <label>利用時間<select id="provider-planned-duration" aria-describedby="provider-planned-end"></select></label>
-            </div>
-            <p id="provider-planned-end" class="provider-planned-end" aria-live="polite">予定開始時刻と利用時間を選ぶと、終了予定時刻を表示します。</p>
-            <label>利用内容<select id="provider-content"></select></label>
-            <label id="provider-content-other-wrap" hidden>その他の具体的な内容<input id="provider-content-other" maxlength="100" autocomplete="off" placeholder="具体的な利用内容" /></label>
-            <button id="provider-toggle-note" class="button secondary" type="button">備考を追加する</button>
-            <label id="provider-note-wrap" hidden>備考<textarea id="provider-note" rows="3" maxlength="300" placeholder="必要なメモだけを入力します。個人情報は入力しません。"></textarea></label>
-            <label>ステータス<select id="provider-status"></select></label>
-            <p id="provider-availability-warning" class="provider-warning" aria-live="polite"></p>
-          </form>
         </section>
 
         <section class="card provider-selection-card" aria-labelledby="provider-calendar-heading">
@@ -291,6 +296,7 @@
           <div class="weekday-row" aria-hidden="true"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
           <div id="provider-calendar" class="calendar-grid provider-calendar" aria-label="受ける予定のカレンダー"></div>
           <div class="calendar-actions">
+            <button id="provider-apply-draft-settings" class="button secondary" type="button">保存した利用設定を反映</button>
             <button id="provider-clear-selection" class="button secondary" type="button">すべて解除</button>
           </div>
           <p id="provider-selection-summary" class="status" aria-live="polite"></p>
@@ -312,16 +318,9 @@
         </section>
 
         <section class="card" aria-labelledby="provider-agreement-heading">
-          <div class="section-heading"><h2 id="provider-agreement-heading">合意内容の確認文</h2><button id="provider-copy-agreement" class="button secondary" type="button">文章をコピー</button></div>
+          <div class="section-heading"><h2 id="provider-agreement-heading">合意内容の確認文</h2><div class="agreement-heading-actions"><label class="agreement-content-toggle"><input id="provider-agreement-include-content" type="checkbox" checked />利用内容を含める</label><button id="provider-copy-agreement" class="button secondary" type="button">文章をコピー</button></div></div>
           <textarea id="provider-agreement-text" readonly aria-label="利用会員へ送る確認文章"></textarea>
           <p id="provider-agreement-status" class="status" aria-live="polite"></p>
-        </section>
-
-        <section class="card" aria-labelledby="provider-submission-heading">
-          <div class="section-heading"><h2 id="provider-submission-heading">ファミサポ提出用予定</h2><button id="provider-copy-submission" class="button secondary" type="button">一覧をコピー</button></div>
-          <textarea id="provider-submission-text" readonly aria-label="ファミサポ提出用予定"></textarea>
-          <button id="provider-mark-submitted" class="button primary full" type="button">表示中の予定を提出済みにする</button>
-          <p id="provider-submission-status" class="status" aria-live="polite"></p>
         </section>
 
         <section class="card" aria-labelledby="provider-settlement-heading">
@@ -381,6 +380,6 @@
       <p id="app-version"></p>
       <p id="app-updated-at"></p>
     </footer>
-    <script type="module" src="app.js?v=20260825-member-role-labels"></script>
+    <script type="module" src="app.js?v=20260825-provider-saved-settings"></script>
   </body>
 </html>
