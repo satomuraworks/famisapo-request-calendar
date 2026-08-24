@@ -155,9 +155,9 @@ export function initializeProviderMode() {
     month: document.querySelector("#provider-target-month"),
     dashboardMonth: document.querySelector("#provider-dashboard-month"), dashboardSummary: document.querySelector("#provider-dashboard-summary"), dashboard: document.querySelector("#provider-dashboard"),
     form: document.querySelector("#provider-schedule-form"), memberName: document.querySelector("#provider-member-name"),
-    registrationCard: document.querySelector("#provider-registration-card"), plannedStart: document.querySelector("#provider-planned-start"), plannedDuration: document.querySelector("#provider-planned-duration"), plannedEnd: document.querySelector("#provider-planned-end"), content: document.querySelector("#provider-content"), contentOther: document.querySelector("#provider-content-other"), contentOtherWrap: document.querySelector("#provider-content-other-wrap"), note: document.querySelector("#provider-note"), noteWrap: document.querySelector("#provider-note-wrap"), noteToggle: document.querySelector("#provider-toggle-note"), status: document.querySelector("#provider-status"), availabilityWarning: document.querySelector("#provider-availability-warning"), formStatus: document.querySelector("#provider-form-status"), registerSelected: document.querySelector("#provider-register-selected"),
-    ocrDetails: document.querySelector(".provider-ocr-details"), ocrImage: document.querySelector("#provider-ocr-image"), ocrRead: document.querySelector("#provider-ocr-read"), ocrStatus: document.querySelector("#provider-ocr-status"),
-    calendar: document.querySelector("#provider-calendar"), calendarLabel: document.querySelector("#provider-calendar-label"), clearSelection: document.querySelector("#provider-clear-selection"), showSelected: document.querySelector("#provider-show-selected"), selectionSummary: document.querySelector("#provider-selection-summary"), draftWrap: document.querySelector("#provider-draft-wrap"), draftList: document.querySelector("#provider-draft-list"), selectedDateLabel: document.querySelector("#provider-selected-date-label"), dayList: document.querySelector("#provider-day-list"),
+    plannedStart: document.querySelector("#provider-planned-start"), plannedDuration: document.querySelector("#provider-planned-duration"), plannedEnd: document.querySelector("#provider-planned-end"), content: document.querySelector("#provider-content"), contentOther: document.querySelector("#provider-content-other"), contentOtherWrap: document.querySelector("#provider-content-other-wrap"), note: document.querySelector("#provider-note"), noteWrap: document.querySelector("#provider-note-wrap"), noteToggle: document.querySelector("#provider-toggle-note"), status: document.querySelector("#provider-status"), availabilityWarning: document.querySelector("#provider-availability-warning"), formStatus: document.querySelector("#provider-form-status"), registerSelected: document.querySelector("#provider-register-selected"),
+    ocrImage: document.querySelector("#provider-ocr-image"), ocrRead: document.querySelector("#provider-ocr-read"), ocrStatus: document.querySelector("#provider-ocr-status"),
+    calendar: document.querySelector("#provider-calendar"), calendarLabel: document.querySelector("#provider-calendar-label"), clearSelection: document.querySelector("#provider-clear-selection"), selectionSummary: document.querySelector("#provider-selection-summary"), draftWrap: document.querySelector("#provider-draft-wrap"), draftList: document.querySelector("#provider-draft-list"), selectedDateLabel: document.querySelector("#provider-selected-date-label"), dayList: document.querySelector("#provider-day-list"),
     agreementText: document.querySelector("#provider-agreement-text"), agreementCopy: document.querySelector("#provider-copy-agreement"), agreementStatus: document.querySelector("#provider-agreement-status"),
     submissionText: document.querySelector("#provider-submission-text"), submissionCopy: document.querySelector("#provider-copy-submission"), markSubmitted: document.querySelector("#provider-mark-submitted"), submissionStatus: document.querySelector("#provider-submission-status"),
     settlementList: document.querySelector("#provider-settlement-list"), estimateTotal: document.querySelector("#provider-estimate-total"), confirmedAmount: document.querySelector("#provider-confirmed-amount"), difference: document.querySelector("#provider-difference"), saveSettlement: document.querySelector("#provider-save-settlement"), notificationText: document.querySelector("#provider-notification-text"), notificationCopy: document.querySelector("#provider-copy-notification"), settlementStatus: document.querySelector("#provider-settlement-status"), checklist: document.querySelector("#provider-checklist"),
@@ -454,8 +454,6 @@ export function initializeProviderMode() {
     elements.registerSelected.disabled = !dates.length;
     elements.registerSelected.textContent = dates.length ? `選択した${dates.length}日を登録する` : "選択した日を登録する";
     elements.clearSelection.disabled = !dates.length;
-    elements.showSelected.disabled = false;
-    elements.registrationCard.hidden = !dates.length;
     elements.draftWrap.hidden = !dates.length;
     elements.draftList.replaceChildren();
     dates.forEach((date) => {
@@ -675,10 +673,6 @@ export function initializeProviderMode() {
     renderAll();
   });
   elements.clearSelection.addEventListener("click", () => { selectedDraftDates = new Set(); draftOverrides = new Map(); renderAll(); });
-  elements.showSelected.addEventListener("click", () => {
-    elements.ocrDetails.open = true;
-    elements.ocrDetails.scrollIntoView({ behavior: "smooth", block: "start" });
-  });
   elements.noteToggle.addEventListener("click", () => { noteExpanded = !noteExpanded; renderNoteField(); });
   elements.plannedStart.addEventListener("change", () => { renderPlannedEnd(); updateAvailabilityWarning(); renderDraftList(); });
   elements.plannedDuration.addEventListener("change", () => { renderPlannedEnd(); updateAvailabilityWarning(); renderDraftList(); });

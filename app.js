@@ -33,7 +33,7 @@ import {
   trackAnalyticsEvent,
 } from "./analytics.js?v=20260824-weekday-durations";
 import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260824-weekday-durations";
-import { initializeProviderMode } from "./provider.js?v=20260824-provider-rebuild";
+import { initializeProviderMode } from "./provider.js?v=20260824-provider-order";
 
 const elements = {
   month: document.querySelector("#target-month"),
