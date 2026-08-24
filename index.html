@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <title>ファミサポ予定づくり</title>
-    <link rel="stylesheet" href="styles.css?v=20260824-requester-duration-details" />
+    <link rel="stylesheet" href="styles.css?v=20260825-member-role-labels" />
   </head>
   <body>
     <p id="reset-complete-notice" class="reset-complete-notice" role="status" aria-live="polite" hidden></p>
@@ -42,7 +42,7 @@
         <button id="provider-mode-tab" class="mode-tab" type="button" role="tab" aria-selected="false" aria-controls="provider-mode">協力会員</button>
       </nav>
       <aside id="mode-indicator" class="mode-indicator" data-mode="requester" aria-live="polite">
-        <strong id="mode-indicator-title">依頼する側</strong>
+        <strong id="mode-indicator-title">利用会員側</strong>
         <span id="mode-indicator-description">利用したい日を選び、連絡用の文章と予定画像を作ります。</span>
       </aside>
 
@@ -144,7 +144,7 @@
         <div id="calendar" class="calendar-grid" aria-label="依頼日カレンダー"></div>
         <p class="hint">日付をタップすると、選択・選択解除できます。土・日・祝日も選択できます。</p>
         <div class="calendar-actions">
-          <button id="select-regular-weekdays-button" class="button secondary" type="button">設定した曜日を一括選択</button>
+          <button id="select-regular-weekdays-button" class="button primary" type="button">設定した曜日を一括選択</button>
           <button id="clear-selection-button" class="button secondary" type="button">日付選択をすべて解除</button>
         </div>
         <p id="selection-summary" class="requester-selection-summary" aria-live="polite"></p>
@@ -294,11 +294,11 @@
             <button id="provider-clear-selection" class="button secondary" type="button">すべて解除</button>
           </div>
           <p id="provider-selection-summary" class="status" aria-live="polite"></p>
-          <div id="provider-draft-wrap" class="provider-draft-wrap" hidden>
-            <h3>必要な日だけ変更する</h3>
+          <details id="provider-draft-wrap" class="provider-draft-wrap" hidden>
+            <summary>必要な日だけ変更する</summary>
             <p>共通設定を全日に適用します。異なる日だけ「この日だけ変更」を開いて調整してください。</p>
             <div id="provider-draft-list" class="provider-draft-list"></div>
-          </div>
+          </details>
           <button id="provider-register-selected" class="button primary full" type="submit" form="provider-schedule-form">選択した日を登録する</button>
           <p id="provider-form-status" class="status" aria-live="polite"></p>
         </section>
@@ -356,11 +356,11 @@
         </section>
 
         <section class="card maintenance-card" aria-labelledby="provider-maintenance-heading">
-          <h2 id="provider-maintenance-heading">依頼を受ける側のデータ管理</h2>
+          <h2 id="provider-maintenance-heading">協力会員側のデータ管理</h2>
           <div class="maintenance-actions">
             <button id="provider-reset-settings" class="button danger full" type="button">対応可能時間の設定だけ初期化</button>
             <button id="provider-delete-month" class="button danger full" type="button">この月の予定を削除</button>
-            <button id="provider-delete-all" class="button danger full" type="button">依頼を受ける側の全データを削除</button>
+            <button id="provider-delete-all" class="button danger full" type="button">協力会員側の全データを削除</button>
           </div>
           <p id="provider-maintenance-status" class="status" aria-live="polite"></p>
         </section>
@@ -381,6 +381,6 @@
       <p id="app-version"></p>
       <p id="app-updated-at"></p>
     </footer>
-    <script type="module" src="app.js?v=20260824-requester-duration-details"></script>
+    <script type="module" src="app.js?v=20260825-member-role-labels"></script>
   </body>
 </html>

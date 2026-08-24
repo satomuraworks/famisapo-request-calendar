@@ -33,7 +33,7 @@ import {
   trackAnalyticsEvent,
 } from "./analytics.js?v=20260824-weekday-durations";
 import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260824-weekday-durations";
-import { initializeProviderMode } from "./provider.js?v=20260824-provider-order";
+import { initializeProviderMode } from "./provider.js?v=20260825-member-role-labels";
 
 const elements = {
   month: document.querySelector("#target-month"),
@@ -133,7 +133,7 @@ function setAppMode(mode) {
   elements.requesterModeTab.setAttribute("aria-selected", String(requester));
   elements.providerModeTab.setAttribute("aria-selected", String(!requester));
   elements.modeIndicator.dataset.mode = requester ? "requester" : "provider";
-  elements.modeIndicatorTitle.textContent = requester ? "依頼する側" : "依頼を受ける側";
+  elements.modeIndicatorTitle.textContent = requester ? "利用会員側" : "協力会員側";
   elements.modeIndicatorDescription.textContent = requester
     ? "利用したい日を選び、連絡用の文章と予定画像を作ります。"
     : "受ける日を選んで、予定をまとめて登録・管理します。";

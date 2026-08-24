@@ -148,9 +148,12 @@ h2 { margin: 0; font-size: 1.1rem; }
 .provider-day-button.is-inspected:not(.is-draft) { outline: 2px solid var(--focus); outline-offset: 1px; }
 .provider-selection-intro { margin-top: -4px; }
 .provider-selection-card > .status { font-weight: 400; }
-.provider-draft-wrap { display: grid; gap: 10px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
-.provider-draft-wrap h3 { margin: 0; font-size: .98rem; }
-.provider-draft-wrap > p { margin: 0; color: var(--muted); font-size: .82rem; line-height: 1.5; }
+.provider-draft-wrap { margin-top: 18px; border-top: 1px solid var(--line); }
+.provider-draft-wrap summary { display: flex; align-items: center; min-height: 42px; color: var(--ink); cursor: pointer; font-size: .98rem; font-weight: 700; list-style: none; }
+.provider-draft-wrap summary::-webkit-details-marker { display: none; }
+.provider-draft-wrap summary::after { content: "＋"; margin-left: auto; color: var(--muted); font-size: 1.1rem; font-weight: 400; }
+.provider-draft-wrap[open] summary::after { content: "−"; }
+.provider-draft-wrap > p { margin: 0 0 10px; color: var(--muted); font-size: .82rem; line-height: 1.5; }
 .provider-draft-list { display: grid; gap: 10px; }
 .provider-draft-item { padding: 12px; background: var(--soft); border: 1px solid var(--line); border-radius: 10px; }
 .provider-draft-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

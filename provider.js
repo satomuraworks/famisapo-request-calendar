@@ -359,6 +359,7 @@ export function initializeProviderMode() {
           draftOverrides = new Map();
         }
         result.dates.forEach((date) => selectedDraftDates.add(date));
+        elements.draftWrap.open = false;
         elements.month.value = `${year}-${month}`;
         elements.ocrStatus.textContent = `${result.dates.length}日をカレンダーの選択に追加しました。内容を確認してから登録してください。`;
       } else {
@@ -662,7 +663,7 @@ export function initializeProviderMode() {
   renderAvailabilitySettings();
   renderAll();
 
-  elements.month.addEventListener("change", () => { selectedDraftDates = new Set(); draftOverrides = new Map(); renderAll(); });
+  elements.month.addEventListener("change", () => { selectedDraftDates = new Set(); draftOverrides = new Map(); elements.draftWrap.open = false; renderAll(); });
   elements.calendar.addEventListener("click", (event) => {
     const button = event.target.closest(".provider-day-button");
     if (!button) return;
@@ -670,9 +671,10 @@ export function initializeProviderMode() {
     if (selectedDraftDates.has(date)) {
       selectedDraftDates.delete(date); draftOverrides.delete(date);
     } else selectedDraftDates.add(date);
+    elements.draftWrap.open = false;
     renderAll();
   });
-  elements.clearSelection.addEventListener("click", () => { selectedDraftDates = new Set(); draftOverrides = new Map(); renderAll(); });
+  elements.clearSelection.addEventListener("click", () => { selectedDraftDates = new Set(); draftOverrides = new Map(); elements.draftWrap.open = false; renderAll(); });
   elements.noteToggle.addEventListener("click", () => { noteExpanded = !noteExpanded; renderNoteField(); });
   elements.plannedStart.addEventListener("change", () => { renderPlannedEnd(); updateAvailabilityWarning(); renderDraftList(); });
   elements.plannedDuration.addEventListener("change", () => { renderPlannedEnd(); updateAvailabilityWarning(); renderDraftList(); });
@@ -739,10 +741,10 @@ export function initializeProviderMode() {
     schedules = schedules.filter((row) => dateMonth(row.date) !== currentMonth()); delete settlements[currentMonth()]; persistSchedules(); persistSettlements(); renderAll(); elements.maintenanceStatus.textContent = "この月の予定を削除しました。";
   });
   elements.deleteAll.addEventListener("click", () => {
-    if (!window.confirm("依頼を受ける側の予定、設定、月末事務の全データを削除しますか？ この操作は元に戻せません。")) return;
+    if (!window.confirm("協力会員側の予定、設定、月末事務の全データを削除しますか？ この操作は元に戻せません。")) return;
     try {
       window.localStorage.removeItem(PROVIDER_SETTINGS_STORAGE_KEY); window.localStorage.removeItem(PROVIDER_SCHEDULES_STORAGE_KEY); window.localStorage.removeItem(PROVIDER_SETTLEMENTS_STORAGE_KEY);
-      schedules = []; settings = normalizeSettings({}); settlements = {}; renderAvailabilitySettings(); renderAll(); elements.maintenanceStatus.textContent = "依頼を受ける側の全データを削除しました。";
+      schedules = []; settings = normalizeSettings({}); settlements = {}; renderAvailabilitySettings(); renderAll(); elements.maintenanceStatus.textContent = "協力会員側の全データを削除しました。";
     } catch { elements.maintenanceStatus.textContent = "削除できませんでした。"; }
   });
 }
