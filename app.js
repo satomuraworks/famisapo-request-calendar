@@ -20,8 +20,8 @@ import {
   SEND_STATUS_STORAGE_KEY,
   sendStatusLabel,
   SETTINGS_STORAGE_KEY,
-} from "./app-utils.js?v=20260723-holiday-selection";
-import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260723-reset-notice";
+} from "./app-utils.js?v=20260824-duration-pricing";
+import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260824-duration-pricing";
 
 const elements = {
   month: document.querySelector("#target-month"),
@@ -44,6 +44,7 @@ const elements = {
   priceBreakdown: document.querySelector("#price-breakdown"),
   priceBreakdownSummary: document.querySelector("#price-breakdown-summary"),
   pricePerVisit: document.querySelector("#price-per-visit"),
+  durationHours: document.querySelector("#duration-hours"),
   message: document.querySelector("#line-message"),
   copyButton: document.querySelector("#copy-button"),
   copyStatus: document.querySelector("#copy-status"),
@@ -107,6 +108,19 @@ function monthTitle(year, monthIndex) {
 
 function sortedSelection() {
   return [...selectedDates].sort();
+}
+
+function getDurationHours() {
+  const duration = elements.durationHours.valueAsNumber;
+  return Number.isFinite(duration) && duration >= 0.5 && Number.isInteger(duration * 2) ? duration : 0;
+}
+
+function formatDuration(hours) {
+  const totalMinutes = Math.round(hours * 60);
+  const wholeHours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (!wholeHours) return `${minutes}分`;
+  return minutes ? `${wholeHours}時間${minutes}分` : `${wholeHours}時間`;
 }
 
 function getImageLayout() {
@@ -301,8 +315,12 @@ function updateConfirmation() {
 
   elements.summary.textContent = `合計 ${count}日間`;
   const settings = getCurrentUsageSettings();
-  const perVisit = calculatePricePerVisit(settings);
-  elements.cost.textContent = `${count}回 × ${formatYen(perVisit)}円 = ${formatYen(calculateEstimate(count, settings))}円`;
+  const perHour = calculatePricePerVisit(settings);
+  const durationHours = getDurationHours();
+  const hourlyUsageFee = perHour - settings.transportFee;
+  elements.cost.textContent = durationHours
+    ? `${count}回 × （利用料金${formatYen(hourlyUsageFee)}円 × ${formatDuration(durationHours)} ＋ 交通費${formatYen(settings.transportFee)}円） = ${formatYen(calculateEstimate(count, settings, durationHours))}円`
+    : "利用時間を30分刻みで入力してください。";
   elements.message.value = makeLineMessage(getSelectedMonth().year, getSelectedMonth().monthIndex, dates);
   elements.copyButton.disabled = count === 0;
   elements.generateButton.disabled = count === 0;
@@ -729,6 +747,11 @@ elements.childrenIncrease.addEventListener("click", () => {
     renderPriceBreakdown();
     updateConfirmation();
   });
+});
+elements.durationHours.addEventListener("input", () => {
+  const duration = elements.durationHours.valueAsNumber;
+  elements.durationHours.setAttribute("aria-invalid", String(elements.durationHours.value !== "" && (!Number.isFinite(duration) || duration < 0.5 || !Number.isInteger(duration * 2))));
+  updateConfirmation();
 });
 elements.saveSettingsButton.addEventListener("click", () => {
   if (saveSettings()) setTransientStatus(elements.settingStatus, "利用設定を保存しました。");

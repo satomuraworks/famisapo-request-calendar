@@ -121,6 +121,10 @@ h2 { margin: 0; font-size: 1.1rem; }
 .estimate h3:not(:first-child) { margin-top: 10px; }
 .estimate span, .estimate small { color: var(--muted); font-size: .82rem; }
 .estimate > strong { color: var(--ink); font-size: clamp(1.15rem, 4vw, 1.35rem); }
+.estimate-duration { display: grid; gap: 7px; margin-top: 4px; color: var(--ink); font-size: .94rem; font-weight: 700; }
+.estimate-duration > span:last-child { display: flex; align-items: center; gap: 8px; color: var(--ink); font-size: 1rem; }
+.estimate-duration input { width: min(100%, 160px); min-height: 44px; padding: 8px 12px; color: var(--ink); background: #fff; border: 1px solid #aaa; border-radius: 9px; font-size: 1rem; font-variant-numeric: tabular-nums; }
+.estimate-duration input[aria-invalid="true"] { border-color: #b74b4b; background: #fff6f6; }
 .price-breakdown { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; margin: 0; font-size: .92rem; }
 .price-breakdown-summary { margin: 0; color: var(--ink); font-size: .94rem; font-weight: 700; }
 .price-breakdown dt { color: var(--muted); }

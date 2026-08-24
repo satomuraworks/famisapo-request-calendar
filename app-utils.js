@@ -61,8 +61,18 @@ export function makePriceBreakdown(settings = DEFAULT_USAGE_SETTINGS) {
   return breakdown;
 }
 
-export function calculateEstimate(selectedCount, settings = DEFAULT_USAGE_SETTINGS) {
-  return Math.max(0, Number(selectedCount) || 0) * calculatePricePerVisit(settings);
+export function calculateEstimate(selectedCount, settings = DEFAULT_USAGE_SETTINGS, durationHours = 1) {
+  const normalized = normalizeUsageSettings(settings);
+  const normalizedDuration = Number(durationHours);
+  const durationMultiplier = Number.isFinite(normalizedDuration)
+    && normalizedDuration >= 0.5
+    && Number.isInteger(normalizedDuration * 2)
+    ? normalizedDuration
+    : 0;
+  if (!durationMultiplier) return 0;
+  const hourlyUsageFee = normalized.firstChildFee
+    + normalized.additionalChildFee * Math.max(0, normalized.childrenCount - 1);
+  return Math.max(0, Number(selectedCount) || 0) * (hourlyUsageFee * durationMultiplier + normalized.transportFee);
 }
 
 export function formatYen(amount) {

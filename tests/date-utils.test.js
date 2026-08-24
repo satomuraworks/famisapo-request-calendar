@@ -64,6 +64,9 @@ test("人数・料金・交通費から利用料金を計算し、子どもご�
   ]);
   assert.equal(calculateEstimate(15, settings), 22500);
   assert.equal(formatYen(calculateEstimate(15, settings)), "22,500");
+  assert.equal(calculateEstimate(15, settings, 0.5), 12000);
+  assert.equal(calculateEstimate(15, settings, 1.5), 33000);
+  assert.equal(calculateEstimate(15, settings, 0.75), 0);
 });
 
 test("不正な料金は0円として扱い、保存済みの旧祝日設定を引き継ぐ", () => {
@@ -127,6 +130,6 @@ test("最新版URLはvパラメータを付与または置き換える", () => {
 });
 
 test("バージョンと更新日はversion.jsから取得する", () => {
-  assert.equal(APP_VERSION, "1.1.3");
-  assert.equal(APP_UPDATED_AT, "2026-07-23");
+  assert.equal(APP_VERSION, "1.2.0");
+  assert.equal(APP_UPDATED_AT, "2026-08-24");
 });
