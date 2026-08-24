@@ -440,6 +440,8 @@ export function initializeProviderMode() {
       remove.addEventListener("click", () => { selectedDraftDates.delete(date); draftOverrides.delete(date); renderAll(); });
       heading.append(title, remove);
 
+      const details = document.createElement("details");
+      const summary = document.createElement("summary"); summary.textContent = "この日だけ変更";
       const fields = document.createElement("div"); fields.className = "provider-draft-fields";
       const memberLabel = document.createElement("label"); memberLabel.textContent = "利用会員";
       const member = document.createElement("input"); member.maxLength = 40; member.value = draft.memberName; memberLabel.append(member);
@@ -478,7 +480,8 @@ export function initializeProviderMode() {
       });
       updateEnd();
       fields.append(memberLabel, dateLabel, startLabel, durationLabel, end, contentLabel, otherLabel, noteLabel, statusLabel);
-      article.append(heading, fields);
+      details.append(summary, fields);
+      article.append(heading, details);
       elements.draftList.append(article);
     });
   }
