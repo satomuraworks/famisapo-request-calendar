@@ -13,6 +13,7 @@ export const PROVIDER_SETTINGS_STORAGE_KEY = "famisapo-request-calendar.provider
 export const PROVIDER_SCHEDULES_STORAGE_KEY = "famisapo-request-calendar.provider-schedules.v1";
 export const PROVIDER_SETTLEMENTS_STORAGE_KEY = "famisapo-request-calendar.provider-settlements.v1";
 export const PROVIDER_DRAFT_SETTINGS_STORAGE_KEY = "famisapo-request-calendar.provider-draft-settings.v1";
+export const PROVIDER_MEMBER_SETTLEMENTS_STORAGE_KEY = "famisapo-request-calendar.provider-member-settlements.v1";
 
 const STATUS_OPTIONS = ["依頼あり", "調整中", "合意済み", "ファミサポ提出済み", "実施済み", "精算済み", "キャンセル"];
 const CHECKLIST_ITEMS = [
@@ -33,6 +34,7 @@ const CONTENT_OPTIONS = [
   "通院・用事の間の預かり",
   "その他",
 ];
+const UNASSIGNED_MEMBER_KEY = "__unassigned_member__";
 
 function readJson(key, fallback) {
   try {
@@ -123,6 +125,17 @@ function normalizeSettlement(value) {
   };
 }
 
+function normalizeMemberSettlements(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).flatMap(([month, members]) => {
+    if (!/^\d{4}-\d{2}$/.test(month) || !members || typeof members !== "object" || Array.isArray(members)) return [];
+    const normalizedMembers = Object.fromEntries(Object.entries(members)
+      .filter(([memberKey]) => typeof memberKey === "string" && memberKey.length <= 80)
+      .map(([memberKey, settlement]) => [memberKey, normalizeSettlement(settlement)]));
+    return Object.keys(normalizedMembers).length ? [[month, normalizedMembers]] : [];
+  }));
+}
+
 function dateMonth(date) {
   return date.slice(0, 7);
 }
@@ -151,6 +164,15 @@ function selectedDateLabel(date) {
   return `${month}月${day}日`;
 }
 
+function memberSettlementKey(memberName) {
+  const normalized = typeof memberName === "string" ? memberName.trim() : "";
+  return normalized || UNASSIGNED_MEMBER_KEY;
+}
+
+function memberSettlementLabel(memberKey) {
+  return memberKey === UNASSIGNED_MEMBER_KEY ? "利用会員名未入力の過去予定" : memberKey;
+}
+
 async function copyText(value, statusElement) {
   if (!value) {
     statusElement.textContent = "コピーする内容がありません。";
@@ -172,7 +194,7 @@ export function initializeProviderMode() {
     plannedStart: document.querySelector("#provider-planned-start"), plannedDuration: document.querySelector("#provider-planned-duration"), plannedEnd: document.querySelector("#provider-planned-end"), content: document.querySelector("#provider-content"), contentOther: document.querySelector("#provider-content-other"), contentOtherWrap: document.querySelector("#provider-content-other-wrap"), note: document.querySelector("#provider-note"), status: document.querySelector("#provider-status"), availabilityWarning: document.querySelector("#provider-availability-warning"), saveDraftSettings: document.querySelector("#provider-save-draft-settings"), draftSettingsStatus: document.querySelector("#provider-draft-settings-status"), formStatus: document.querySelector("#provider-form-status"), registerSelected: document.querySelector("#provider-register-selected"),
     ocrImage: document.querySelector("#provider-ocr-image"), ocrRead: document.querySelector("#provider-ocr-read"), ocrStatus: document.querySelector("#provider-ocr-status"),
     calendar: document.querySelector("#provider-calendar"), calendarLabel: document.querySelector("#provider-calendar-label"), clearSelection: document.querySelector("#provider-clear-selection"), applyDraftSettings: document.querySelector("#provider-apply-draft-settings"), selectionSummary: document.querySelector("#provider-selection-summary"), draftWrap: document.querySelector("#provider-draft-wrap"), draftList: document.querySelector("#provider-draft-list"), selectedDateLabel: document.querySelector("#provider-selected-date-label"), dayList: document.querySelector("#provider-day-list"),
-    settlementList: document.querySelector("#provider-settlement-list"), estimateTotal: document.querySelector("#provider-estimate-total"), confirmedAmount: document.querySelector("#provider-confirmed-amount"), difference: document.querySelector("#provider-difference"), saveSettlement: document.querySelector("#provider-save-settlement"), notificationText: document.querySelector("#provider-notification-text"), notificationCopy: document.querySelector("#provider-copy-notification"), settlementStatus: document.querySelector("#provider-settlement-status"), checklist: document.querySelector("#provider-checklist"),
+    settlementList: document.querySelector("#provider-settlement-list"), settlementLegacyNote: document.querySelector("#provider-settlement-legacy-note"), settlementStatus: document.querySelector("#provider-settlement-status"), checklist: document.querySelector("#provider-checklist"),
     availabilitySettings: document.querySelector("#provider-availability-settings"), saveSettings: document.querySelector("#provider-save-settings"), settingsStatus: document.querySelector("#provider-settings-status"),
     resetSettings: document.querySelector("#provider-reset-settings"), deleteMonth: document.querySelector("#provider-delete-month"), deleteAll: document.querySelector("#provider-delete-all"), maintenanceStatus: document.querySelector("#provider-maintenance-status"),
   };
@@ -180,6 +202,7 @@ export function initializeProviderMode() {
   let settings = normalizeSettings(readJson(PROVIDER_SETTINGS_STORAGE_KEY, {}));
   let draftSettings = normalizeDraftSettings(readJson(PROVIDER_DRAFT_SETTINGS_STORAGE_KEY, {}));
   let settlements = readJson(PROVIDER_SETTLEMENTS_STORAGE_KEY, {});
+  let memberSettlements = normalizeMemberSettlements(readJson(PROVIDER_MEMBER_SETTLEMENTS_STORAGE_KEY, {}));
   let selectedDraftDates = new Set();
   let draftOverrides = new Map();
 
@@ -190,11 +213,22 @@ export function initializeProviderMode() {
   const persistSettings = () => writeJson(PROVIDER_SETTINGS_STORAGE_KEY, settings);
   const persistDraftSettings = () => writeJson(PROVIDER_DRAFT_SETTINGS_STORAGE_KEY, draftSettings);
   const persistSettlements = () => writeJson(PROVIDER_SETTLEMENTS_STORAGE_KEY, settlements);
+  const persistMemberSettlements = () => writeJson(PROVIDER_MEMBER_SETTLEMENTS_STORAGE_KEY, memberSettlements);
   const requesterSettings = () => normalizeUsageSettings(readJson(SETTINGS_STORAGE_KEY, {}));
 
   function saveSettlement(settlement) {
     settlements[currentMonth()] = normalizeSettlement(settlement);
     return persistSettlements();
+  }
+
+  function currentMemberSettlement(memberKey) {
+    return normalizeSettlement(memberSettlements[currentMonth()]?.[memberKey]);
+  }
+
+  function saveMemberSettlement(memberKey, settlement) {
+    const month = currentMonth();
+    memberSettlements[month] = { ...(memberSettlements[month] ?? {}), [memberKey]: normalizeSettlement(settlement) };
+    return persistMemberSettlements();
   }
 
   function renderStatusOptions(select, selected) {
@@ -541,9 +575,12 @@ export function initializeProviderMode() {
   }
 
   function updateSchedule(id, change) {
+    const previousSchedules = schedules;
     schedules = schedules.map((schedule) => schedule.id === id ? normalizeProviderSchedule({ ...schedule, ...change }) : schedule);
-    persistSchedules();
+    const saved = persistSchedules();
+    if (!saved) { schedules = previousSchedules; return false; }
     renderAll();
+    return true;
   }
 
   function renderDayList() {
@@ -557,12 +594,22 @@ export function initializeProviderMode() {
     rows.forEach((schedule) => {
       const article = document.createElement("article");
       article.className = "provider-schedule-item";
-      const header = document.createElement("p");
-      header.className = "provider-schedule-heading";
-      header.textContent = `${shortDate(schedule.date)}　${schedule.memberName || "表示名未入力"}　${schedule.plannedStart}〜${schedule.plannedEnd}`;
+      const header = document.createElement("div");
+      header.className = "provider-schedule-header";
+      const heading = document.createElement("p");
+      heading.className = "provider-schedule-heading";
+      heading.textContent = `${shortDate(schedule.date)}　${schedule.memberName || "表示名未入力"}　${schedule.plannedStart}〜${schedule.plannedEnd}`;
+      const inlineStatusLabel = document.createElement("label");
+      inlineStatusLabel.className = "provider-inline-status";
+      inlineStatusLabel.textContent = "ステータス";
+      const inlineStatus = document.createElement("select"); renderStatusOptions(inlineStatus, schedule.status); inlineStatusLabel.append(inlineStatus);
+      inlineStatus.addEventListener("change", () => {
+        elements.formStatus.textContent = updateSchedule(schedule.id, { status: inlineStatus.value }) ? "ステータスを保存しました。" : "ステータスを保存できませんでした。";
+      });
+      header.append(heading, inlineStatusLabel);
       const details = document.createElement("p");
       details.className = "provider-schedule-details";
-      details.textContent = [schedule.content || "利用内容未入力", schedule.status].filter(Boolean).join("　");
+      details.textContent = schedule.content || "利用内容未入力";
       const editDetails = document.createElement("details"); editDetails.className = "provider-schedule-edit";
       const editSummary = document.createElement("summary"); editSummary.textContent = "編集";
       const fields = document.createElement("div");
@@ -595,36 +642,72 @@ export function initializeProviderMode() {
     });
   }
 
-  function settlementRows() {
-    return monthSchedules().filter((row) => row.status === "実施済み");
+  function memberSettlementGroups() {
+    const groups = new Map();
+    monthSchedules().filter((row) => row.status !== "キャンセル").forEach((row) => {
+      const memberKey = memberSettlementKey(row.memberName);
+      groups.set(memberKey, [...(groups.get(memberKey) ?? []), row]);
+    });
+    return [...groups.entries()].sort(([first], [second]) => memberSettlementLabel(first).localeCompare(memberSettlementLabel(second), "ja"));
+  }
+
+  function appendSettlementSummaryRow(summary, label, value) {
+    const term = document.createElement("dt"); term.textContent = label;
+    const description = document.createElement("dd"); description.textContent = value;
+    summary.append(term, description);
   }
 
   function renderSettlement() {
-    const rows = settlementRows();
-    const estimate = rows.reduce((total, row) => total + calculateEstimate(1, requesterSettings(), durationHours(row.actualStart, row.actualEnd)), 0);
-    const settlement = currentSettlement();
+    const legacySettlement = currentSettlement();
+    elements.settlementLegacyNote.hidden = legacySettlement.confirmedAmount === null;
+    elements.settlementLegacyNote.textContent = legacySettlement.confirmedAmount === null
+      ? ""
+      : `この月の旧形式の確定金額は${formatYen(legacySettlement.confirmedAmount)}円です。利用会員ごとに分けられないため、既存記録のまま保持しています。`;
     elements.settlementList.replaceChildren();
-    if (!rows.length) {
-      elements.settlementList.textContent = "実施済みの予定はありません。";
-    } else {
-      rows.forEach((row) => {
-        const item = document.createElement("div");
-        item.className = "provider-settlement-item";
-        item.innerHTML = `<strong>${shortDate(row.date)}　${row.memberName || "表示名未入力"}</strong><span>${row.actualStart}〜${row.actualEnd}　実績${durationHours(row.actualStart, row.actualEnd)}時間</span>`;
-        elements.settlementList.append(item);
+    const groups = memberSettlementGroups();
+    if (!groups.length) {
+      elements.settlementList.textContent = "この月に精算対象の予定はありません。";
+      return;
+    }
+    groups.forEach(([memberKey, rows]) => {
+      const plannedHours = rows.reduce((total, row) => total + normalizeDurationHours(row.plannedDurationHours, durationHours(row.plannedStart, row.plannedEnd)), 0);
+      const actualRows = rows.filter((row) => row.status === "実施済み");
+      const actualHours = actualRows.reduce((total, row) => total + durationHours(row.actualStart, row.actualEnd), 0);
+      const estimate = actualRows.reduce((total, row) => total + calculateEstimate(1, requesterSettings(), durationHours(row.actualStart, row.actualEnd)), 0);
+      const settlement = currentMemberSettlement(memberKey);
+      const section = document.createElement("article"); section.className = "provider-member-settlement";
+      const heading = document.createElement("h3"); heading.textContent = memberSettlementLabel(memberKey);
+      const summary = document.createElement("dl"); summary.className = "provider-settlement-summary";
+      appendSettlementSummaryRow(summary, "予定", `${rows.length}件・${formatDuration(plannedHours)}`);
+      appendSettlementSummaryRow(summary, "実績", actualRows.length ? `${actualRows.length}件・${formatDuration(actualHours)}` : "未入力");
+      appendSettlementSummaryRow(summary, "精算対象", actualRows.length ? `${actualRows.length}件` : "実施済みの予定はありません");
+      appendSettlementSummaryRow(summary, "自分の記録上の概算", `${formatYen(estimate)}円`);
+      const confirmedTerm = document.createElement("dt"); confirmedTerm.textContent = "ファミサポ確定金額";
+      const confirmedDescription = document.createElement("dd");
+      const confirmedLabel = document.createElement("label"); confirmedLabel.className = "yen-input";
+      const confirmedAmount = document.createElement("input"); confirmedAmount.type = "number"; confirmedAmount.min = "0"; confirmedAmount.step = "1"; confirmedAmount.inputMode = "numeric"; confirmedAmount.placeholder = "未入力"; confirmedAmount.value = settlement.confirmedAmount ?? "";
+      confirmedLabel.append(confirmedAmount, document.createTextNode("円")); confirmedDescription.append(confirmedLabel); summary.append(confirmedTerm, confirmedDescription);
+      appendSettlementSummaryRow(summary, "比較結果", settlement.confirmedAmount === null ? "確定金額を入力してください。" : settlement.confirmedAmount === estimate ? "一致" : `差額 ${settlement.confirmedAmount - estimate >= 0 ? "+" : ""}${formatYen(settlement.confirmedAmount - estimate)}円`);
+      const save = document.createElement("button"); save.type = "button"; save.className = "button secondary full"; save.textContent = "この利用会員の確定金額を保存";
+      save.addEventListener("click", () => {
+        const value = confirmedAmount.valueAsNumber;
+        if (!Number.isInteger(value) || value < 0) { elements.settlementStatus.textContent = "ファミサポ確定金額は0円以上の整数で入力してください。"; return; }
+        const nextSettlement = currentMemberSettlement(memberKey); nextSettlement.confirmedAmount = value;
+        if (saveMemberSettlement(memberKey, nextSettlement)) { elements.settlementStatus.textContent = `${memberSettlementLabel(memberKey)}の確定金額を保存しました。`; renderSettlement(); }
+        else elements.settlementStatus.textContent = "端末内に保存できませんでした。";
       });
-    }
-    elements.estimateTotal.textContent = `${formatYen(estimate)}円`;
-    elements.confirmedAmount.value = settlement.confirmedAmount ?? "";
-    if (settlement.confirmedAmount === null) elements.difference.textContent = "確定金額を入力してください。";
-    else if (settlement.confirmedAmount === estimate) elements.difference.textContent = "一致";
-    else {
-      const difference = settlement.confirmedAmount - estimate;
-      elements.difference.textContent = `差額 ${difference >= 0 ? "+" : ""}${formatYen(difference)}円`;
-    }
-    elements.notificationText.value = settlement.confirmedAmount === null
-      ? "ファミサポ確定金額を入力すると、料金通知文を作成できます。"
-      : `${monthLabel(currentMonth())}分のファミサポ利用料金についてご連絡します。\n\n利用回数：${rows.length}回\n確定金額：${formatYen(settlement.confirmedAmount)}円\n\nよろしくお願いいたします。`;
+      const notificationHeading = document.createElement("div"); notificationHeading.className = "section-heading provider-notification-heading";
+      const notificationTitle = document.createElement("h4"); notificationTitle.textContent = "料金通知文";
+      const notificationCopy = document.createElement("button"); notificationCopy.type = "button"; notificationCopy.className = "button secondary"; notificationCopy.textContent = "文章をコピー";
+      notificationHeading.append(notificationTitle, notificationCopy);
+      const notification = document.createElement("textarea"); notification.readOnly = true; notification.setAttribute("aria-label", `${memberSettlementLabel(memberKey)}の料金通知文`);
+      notification.value = settlement.confirmedAmount === null
+        ? "ファミサポ確定金額を入力すると、料金通知文を作成できます。"
+        : `${monthLabel(currentMonth())}分のファミサポ利用料金についてご連絡します。\n\n利用会員：${memberSettlementLabel(memberKey)}\n利用回数：${actualRows.length}回\n確定金額：${formatYen(settlement.confirmedAmount)}円\n\nよろしくお願いいたします。`;
+      notificationCopy.addEventListener("click", () => copyText(notification.value, elements.settlementStatus));
+      section.append(heading, summary, save, notificationHeading, notification);
+      elements.settlementList.append(section);
+    });
   }
 
   function renderChecklist() {
@@ -725,13 +808,6 @@ export function initializeProviderMode() {
     renderAll();
   });
   elements.ocrRead.addEventListener("click", readOcrImage);
-  elements.saveSettlement.addEventListener("click", () => {
-    const value = elements.confirmedAmount.valueAsNumber;
-    if (!Number.isInteger(value) || value < 0) { elements.settlementStatus.textContent = "ファミサポ確定金額は0円以上の整数で入力してください。"; return; }
-    const settlement = currentSettlement(); settlement.confirmedAmount = value;
-    if (saveSettlement(settlement)) { elements.settlementStatus.textContent = "ファミサポ確定金額を保存しました。"; renderSettlement(); }
-  });
-  elements.notificationCopy.addEventListener("click", () => copyText(elements.notificationText.value, elements.settlementStatus));
   elements.checklist.addEventListener("change", (event) => {
     const input = event.target.closest("input[data-key]"); if (!input) return;
     const settlement = currentSettlement(); settlement.checklist[input.dataset.key] = input.checked;
@@ -754,13 +830,13 @@ export function initializeProviderMode() {
   elements.deleteMonth.addEventListener("click", () => {
     const count = monthSchedules().length;
     if (!count || !window.confirm(`${monthLabel(currentMonth())}の予定${count}件と月末事務の記録を削除しますか？`)) return;
-    schedules = schedules.filter((row) => dateMonth(row.date) !== currentMonth()); delete settlements[currentMonth()]; persistSchedules(); persistSettlements(); renderAll(); elements.maintenanceStatus.textContent = "この月の予定を削除しました。";
+    schedules = schedules.filter((row) => dateMonth(row.date) !== currentMonth()); delete settlements[currentMonth()]; delete memberSettlements[currentMonth()]; persistSchedules(); persistSettlements(); persistMemberSettlements(); renderAll(); elements.maintenanceStatus.textContent = "この月の予定を削除しました。";
   });
   elements.deleteAll.addEventListener("click", () => {
     if (!window.confirm("協力会員側の予定、設定、月末事務の全データを削除しますか？ この操作は元に戻せません。")) return;
     try {
-      window.localStorage.removeItem(PROVIDER_SETTINGS_STORAGE_KEY); window.localStorage.removeItem(PROVIDER_DRAFT_SETTINGS_STORAGE_KEY); window.localStorage.removeItem(PROVIDER_SCHEDULES_STORAGE_KEY); window.localStorage.removeItem(PROVIDER_SETTLEMENTS_STORAGE_KEY);
-      schedules = []; settings = normalizeSettings({}); draftSettings = normalizeDraftSettings({}); settlements = {}; renderAvailabilitySettings(); renderAll(); elements.maintenanceStatus.textContent = "協力会員側の全データを削除しました。";
+      window.localStorage.removeItem(PROVIDER_SETTINGS_STORAGE_KEY); window.localStorage.removeItem(PROVIDER_DRAFT_SETTINGS_STORAGE_KEY); window.localStorage.removeItem(PROVIDER_SCHEDULES_STORAGE_KEY); window.localStorage.removeItem(PROVIDER_SETTLEMENTS_STORAGE_KEY); window.localStorage.removeItem(PROVIDER_MEMBER_SETTLEMENTS_STORAGE_KEY);
+      schedules = []; settings = normalizeSettings({}); draftSettings = normalizeDraftSettings({}); settlements = {}; memberSettlements = {}; renderAvailabilitySettings(); renderAll(); elements.maintenanceStatus.textContent = "協力会員側の全データを削除しました。";
     } catch { elements.maintenanceStatus.textContent = "削除できませんでした。"; }
   });
 }
