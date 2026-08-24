@@ -21,8 +21,8 @@ import {
   SEND_STATUS_STORAGE_KEY,
   sendStatusLabel,
   SETTINGS_STORAGE_KEY,
-} from "./app-utils.js?v=20260824-zero-fee-defaults";
-import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260824-zero-fee-defaults";
+} from "./app-utils.js?v=20260824-contact-wording";
+import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260824-contact-wording";
 
 const elements = {
   month: document.querySelector("#target-month"),
@@ -822,7 +822,7 @@ elements.saveSettingsButton.addEventListener("click", () => {
   }
 });
 elements.resetSettingsButton.addEventListener("click", () => {
-  if (!window.confirm("利用設定を初期値に戻しますか？\n保存履歴と送信状況は削除されません。")) return;
+  if (!window.confirm("利用設定を初期値に戻しますか？\n保存履歴と連絡状況は削除されません。")) return;
   usageSettings = { ...DEFAULT_USAGE_SETTINGS };
   renderUsageSettings();
   if (saveSettings()) {

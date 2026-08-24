@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <title>ファミサポ予定づくり</title>
-    <link rel="stylesheet" href="styles.css?v=20260824-zero-fee-defaults" />
+    <link rel="stylesheet" href="styles.css?v=20260824-contact-wording" />
   </head>
   <body>
     <p id="reset-complete-notice" class="reset-complete-notice" role="status" aria-live="polite" hidden></p>
     <div id="reset-data-modal" class="reset-data-modal" role="dialog" aria-modal="true" aria-labelledby="reset-data-modal-title" aria-describedby="reset-data-modal-description" hidden>
       <div class="reset-data-modal-card" role="document">
         <h2 id="reset-data-modal-title">保存データをリセットしますか？</h2>
-        <p id="reset-data-modal-description">保存した利用設定、履歴、送信状況などが削除されます。この操作は元に戻せません。</p>
+        <p id="reset-data-modal-description">保存した利用設定、履歴、連絡状況などが削除されます。この操作は元に戻せません。</p>
         <div class="reset-data-modal-actions">
           <button id="reset-data-cancel-button" class="button secondary" type="button">キャンセル</button>
           <button id="reset-data-confirm-button" class="button danger-primary" type="button">リセットする</button>
@@ -23,7 +23,7 @@
       <header class="page-header">
         <p class="eyebrow">FAMILY SUPPORT CENTER</p>
         <h1>ファミサポ予定づくり</h1>
-        <p>利用を依頼する日を選び、LINE用の文章と画像を作成します。</p>
+        <p>利用を依頼する日を選び、連絡用の文章と画像を作成します。</p>
       </header>
 
       <section class="card month-card" aria-labelledby="month-heading">
@@ -113,7 +113,7 @@
 
       <section class="card confirmation-card" aria-labelledby="confirmation-heading">
         <div class="section-heading">
-          <h2 id="confirmation-heading">送信内容の確認</h2>
+          <h2 id="confirmation-heading">内容の確認</h2>
           <p id="selection-summary" aria-live="polite"></p>
         </div>
         <ul id="selected-dates" class="selected-dates" aria-label="選択した依頼日"></ul>
@@ -131,16 +131,16 @@
 
       <section class="card line-card" aria-labelledby="line-heading">
         <div class="section-heading">
-          <h2 id="line-heading">LINE用文章</h2>
-          <button id="copy-button" class="button secondary" type="button">LINE文章をコピー</button>
+          <h2 id="line-heading">連絡用文章</h2>
+          <button id="copy-button" class="button secondary" type="button">連絡用文章をコピー</button>
         </div>
-        <textarea id="line-message" readonly aria-label="LINE用文章"></textarea>
+        <textarea id="line-message" readonly aria-label="連絡用文章"></textarea>
         <p id="copy-status" class="status" aria-live="polite"></p>
       </section>
 
       <section class="card image-card" aria-labelledby="image-heading">
         <div class="section-heading">
-          <h2 id="image-heading">送信用PNG画像</h2>
+          <h2 id="image-heading">予定画像の作成</h2>
           <p>1080 × 1350 px</p>
         </div>
         <fieldset class="image-layout-picker">
@@ -148,7 +148,7 @@
           <label><input type="radio" name="image-layout" value="list" /> 一覧のみ</label>
           <label><input type="radio" name="image-layout" value="calendar" checked /> カレンダー付き</label>
         </fieldset>
-        <button id="generate-button" class="button primary full" type="button">内容を確認してPNG画像を生成</button>
+        <button id="generate-button" class="button primary full" type="button">内容を確認して予定画像を作成</button>
         <p id="image-status" class="status" aria-live="polite"></p>
         <div id="image-preview-wrap" class="image-preview-wrap" hidden>
           <canvas id="image-canvas" width="1080" height="1350" aria-label="生成した送信用画像のプレビュー"></canvas>
@@ -159,7 +159,7 @@
       </section>
 
       <section class="card send-status-card" aria-labelledby="send-status-heading">
-        <h2 id="send-status-heading">送信状況</h2>
+        <h2 id="send-status-heading">連絡状況</h2>
         <p class="hint">送信後にチェックしてください。依頼日を変更すると、この月のチェックは自動で解除されます。</p>
         <div class="send-status-options">
           <label class="toggle-control" for="member-sent">
@@ -201,6 +201,6 @@
       <p id="app-version"></p>
       <p id="app-updated-at"></p>
     </footer>
-    <script type="module" src="app.js?v=20260824-zero-fee-defaults"></script>
+    <script type="module" src="app.js?v=20260824-contact-wording"></script>
   </body>
 </html>
