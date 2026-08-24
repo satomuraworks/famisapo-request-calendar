@@ -172,7 +172,6 @@ export function initializeProviderMode() {
     plannedStart: document.querySelector("#provider-planned-start"), plannedDuration: document.querySelector("#provider-planned-duration"), plannedEnd: document.querySelector("#provider-planned-end"), content: document.querySelector("#provider-content"), contentOther: document.querySelector("#provider-content-other"), contentOtherWrap: document.querySelector("#provider-content-other-wrap"), note: document.querySelector("#provider-note"), status: document.querySelector("#provider-status"), availabilityWarning: document.querySelector("#provider-availability-warning"), saveDraftSettings: document.querySelector("#provider-save-draft-settings"), draftSettingsStatus: document.querySelector("#provider-draft-settings-status"), formStatus: document.querySelector("#provider-form-status"), registerSelected: document.querySelector("#provider-register-selected"),
     ocrImage: document.querySelector("#provider-ocr-image"), ocrRead: document.querySelector("#provider-ocr-read"), ocrStatus: document.querySelector("#provider-ocr-status"),
     calendar: document.querySelector("#provider-calendar"), calendarLabel: document.querySelector("#provider-calendar-label"), clearSelection: document.querySelector("#provider-clear-selection"), applyDraftSettings: document.querySelector("#provider-apply-draft-settings"), selectionSummary: document.querySelector("#provider-selection-summary"), draftWrap: document.querySelector("#provider-draft-wrap"), draftList: document.querySelector("#provider-draft-list"), selectedDateLabel: document.querySelector("#provider-selected-date-label"), dayList: document.querySelector("#provider-day-list"),
-    agreementText: document.querySelector("#provider-agreement-text"), agreementIncludeContent: document.querySelector("#provider-agreement-include-content"), agreementCopy: document.querySelector("#provider-copy-agreement"), agreementStatus: document.querySelector("#provider-agreement-status"),
     settlementList: document.querySelector("#provider-settlement-list"), estimateTotal: document.querySelector("#provider-estimate-total"), confirmedAmount: document.querySelector("#provider-confirmed-amount"), difference: document.querySelector("#provider-difference"), saveSettlement: document.querySelector("#provider-save-settlement"), notificationText: document.querySelector("#provider-notification-text"), notificationCopy: document.querySelector("#provider-copy-notification"), settlementStatus: document.querySelector("#provider-settlement-status"), checklist: document.querySelector("#provider-checklist"),
     availabilitySettings: document.querySelector("#provider-availability-settings"), saveSettings: document.querySelector("#provider-save-settings"), settingsStatus: document.querySelector("#provider-settings-status"),
     resetSettings: document.querySelector("#provider-reset-settings"), deleteMonth: document.querySelector("#provider-delete-month"), deleteAll: document.querySelector("#provider-delete-all"), maintenanceStatus: document.querySelector("#provider-maintenance-status"),
@@ -596,14 +595,6 @@ export function initializeProviderMode() {
     });
   }
 
-  function renderAgreement() {
-    const rows = monthSchedules().filter((row) => !["キャンセル"].includes(row.status));
-    const includeContent = elements.agreementIncludeContent.checked;
-    elements.agreementText.value = rows.length
-      ? `${monthLabel(currentMonth())}の予定はこちらでお願いします。\n\n${rows.map((row) => `${shortDate(row.date)} ${row.plannedStart}〜${row.plannedEnd}${includeContent && row.content ? `　${row.content}` : ""}`).join("\n")}`
-      : "予定を登録すると、確認文章を作成できます。";
-  }
-
   function settlementRows() {
     return monthSchedules().filter((row) => row.status === "実施済み");
   }
@@ -671,7 +662,7 @@ export function initializeProviderMode() {
   }
 
   function renderAll() {
-    renderDashboard(); renderCalendar(); renderDraftList(); renderDayList(); renderAgreement(); renderSettlement(); renderChecklist(); updateAvailabilityWarning();
+    renderDashboard(); renderCalendar(); renderDraftList(); renderDayList(); renderSettlement(); renderChecklist(); updateAvailabilityWarning();
   }
 
   elements.month.value = document.querySelector("#target-month").value;
@@ -734,8 +725,6 @@ export function initializeProviderMode() {
     renderAll();
   });
   elements.ocrRead.addEventListener("click", readOcrImage);
-  elements.agreementIncludeContent.addEventListener("change", renderAgreement);
-  elements.agreementCopy.addEventListener("click", () => copyText(elements.agreementText.value, elements.agreementStatus));
   elements.saveSettlement.addEventListener("click", () => {
     const value = elements.confirmedAmount.valueAsNumber;
     if (!Number.isInteger(value) || value < 0) { elements.settlementStatus.textContent = "ファミサポ確定金額は0円以上の整数で入力してください。"; return; }

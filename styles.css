@@ -148,6 +148,7 @@ h2 { margin: 0; font-size: 1.1rem; }
 .provider-day-button.is-inspected:not(.is-draft) { outline: 2px solid var(--focus); outline-offset: 1px; }
 .provider-selection-intro { margin-top: -4px; }
 .provider-selection-card > .status { font-weight: 400; }
+.provider-settings-selection { margin-top: 4px; padding-top: 20px; border-top: 1px solid var(--line); }
 .provider-draft-wrap { margin-top: 18px; border-top: 1px solid var(--line); }
 .provider-draft-wrap summary { display: flex; align-items: center; min-height: 42px; color: var(--ink); cursor: pointer; font-size: .98rem; font-weight: 700; list-style: none; }
 .provider-draft-wrap summary::-webkit-details-marker { display: none; }
@@ -241,10 +242,6 @@ h2 { margin: 0; font-size: 1.1rem; }
 .provider-ocr-date-row .button { min-width: 58px; }
 .provider-ocr-add-date { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .provider-ocr-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.agreement-heading-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
-.agreement-heading-actions .button { white-space: nowrap; }
-.agreement-content-toggle { display: flex; align-items: center; gap: 6px; min-height: 36px; color: var(--ink); font-size: .82rem; font-weight: 650; white-space: nowrap; }
-.agreement-content-toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
 .provider-settlement-list { display: grid; gap: 8px; margin-top: 14px; }
 .provider-settlement-list:empty { display: none; }
 .provider-settlement-item { display: grid; gap: 3px; padding: 10px 12px; background: var(--soft); border-radius: 9px; }
@@ -363,8 +360,6 @@ canvas { display: block; width: 100%; height: auto; border: 1px solid var(--line
   .line-card .section-heading { align-items: flex-start; flex-direction: column; }
   .line-heading-actions { width: 100%; justify-content: space-between; flex-wrap: wrap; }
   .line-heading-actions .button { flex: 0 1 auto; min-width: 165px; }
-  .agreement-heading-actions { width: 100%; justify-content: space-between; flex-wrap: wrap; }
-  .agreement-heading-actions .button { flex: 0 1 auto; min-width: 140px; }
   .provider-availability-row { grid-template-columns: 2.5rem minmax(0, 1fr); gap: 8px; }
   .provider-time-fields { grid-column: 1 / -1; }
   .provider-time-fields label { grid-template-columns: 1fr; gap: 4px; }

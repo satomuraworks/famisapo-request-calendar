@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <title>ファミサポ予定づくり</title>
-    <link rel="stylesheet" href="styles.css?v=20260825-provider-saved-settings" />
+    <link rel="stylesheet" href="styles.css?v=20260825-provider-settings-flow" />
   </head>
   <body>
     <p id="reset-complete-notice" class="reset-complete-notice" role="status" aria-live="polite" hidden></p>
@@ -260,7 +260,7 @@
 
         <section id="provider-registration-card" class="card provider-registration-card" aria-labelledby="provider-form-heading">
           <details class="provider-settings-details">
-            <summary id="provider-form-heading">利用設定<span>利用会員・開始時間・利用時間・利用内容などをまとめて設定できます</span></summary>
+            <summary id="provider-form-heading">利用設定<span>利用会員・開始時間・利用時間・利用内容を設定</span></summary>
             <div class="provider-settings-content">
               <details class="provider-ocr-details">
                 <summary id="provider-ocr-heading">画像から日付を追加<span>日付選択を補助</span></summary>
@@ -286,27 +286,26 @@
                 <button id="provider-save-draft-settings" class="button secondary full" type="button">設定を保存</button>
                 <p id="provider-draft-settings-status" class="status" aria-live="polite"></p>
               </form>
+              <section class="provider-selection-card provider-settings-selection" aria-labelledby="provider-calendar-heading">
+                <div class="section-heading"><h2 id="provider-calendar-heading">受ける日を選ぶ</h2><p id="provider-calendar-label"></p></div>
+                <p class="hint provider-selection-intro">利用設定の共通内容を、選択した日付すべてに適用します。同じ日に登録済み予定があっても、新しい予定として追加できます。</p>
+                <div class="weekday-row" aria-hidden="true"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
+                <div id="provider-calendar" class="calendar-grid provider-calendar" aria-label="受ける予定のカレンダー"></div>
+                <div class="calendar-actions">
+                  <button id="provider-apply-draft-settings" class="button secondary" type="button">保存した利用設定を反映</button>
+                  <button id="provider-clear-selection" class="button secondary" type="button">すべて解除</button>
+                </div>
+                <p id="provider-selection-summary" class="status" aria-live="polite"></p>
+                <details id="provider-draft-wrap" class="provider-draft-wrap" hidden>
+                  <summary>必要な日だけ変更する</summary>
+                  <p>共通設定を全日に適用します。異なる日だけ「この日だけ変更」を開いて調整してください。</p>
+                  <div id="provider-draft-list" class="provider-draft-list"></div>
+                </details>
+                <button id="provider-register-selected" class="button primary full" type="submit" form="provider-schedule-form">選択した日を登録する</button>
+                <p id="provider-form-status" class="status" aria-live="polite"></p>
+              </section>
             </div>
           </details>
-        </section>
-
-        <section class="card provider-selection-card" aria-labelledby="provider-calendar-heading">
-          <div class="section-heading"><h2 id="provider-calendar-heading">受ける日を選ぶ</h2><p id="provider-calendar-label"></p></div>
-          <p class="hint provider-selection-intro">日付を複数選びます。同じ日に登録済み予定があっても、新しい予定として追加できます。</p>
-          <div class="weekday-row" aria-hidden="true"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
-          <div id="provider-calendar" class="calendar-grid provider-calendar" aria-label="受ける予定のカレンダー"></div>
-          <div class="calendar-actions">
-            <button id="provider-apply-draft-settings" class="button secondary" type="button">保存した利用設定を反映</button>
-            <button id="provider-clear-selection" class="button secondary" type="button">すべて解除</button>
-          </div>
-          <p id="provider-selection-summary" class="status" aria-live="polite"></p>
-          <details id="provider-draft-wrap" class="provider-draft-wrap" hidden>
-            <summary>必要な日だけ変更する</summary>
-            <p>共通設定を全日に適用します。異なる日だけ「この日だけ変更」を開いて調整してください。</p>
-            <div id="provider-draft-list" class="provider-draft-list"></div>
-          </details>
-          <button id="provider-register-selected" class="button primary full" type="submit" form="provider-schedule-form">選択した日を登録する</button>
-          <p id="provider-form-status" class="status" aria-live="polite"></p>
         </section>
 
         <section class="card" aria-labelledby="provider-registered-heading">
@@ -315,12 +314,6 @@
             <h3 id="provider-selected-date-label">今月の予定</h3>
             <div id="provider-day-list" class="provider-day-list" aria-live="polite"></div>
           </div>
-        </section>
-
-        <section class="card" aria-labelledby="provider-agreement-heading">
-          <div class="section-heading"><h2 id="provider-agreement-heading">合意内容の確認文</h2><div class="agreement-heading-actions"><label class="agreement-content-toggle"><input id="provider-agreement-include-content" type="checkbox" checked />利用内容を含める</label><button id="provider-copy-agreement" class="button secondary" type="button">文章をコピー</button></div></div>
-          <textarea id="provider-agreement-text" readonly aria-label="利用会員へ送る確認文章"></textarea>
-          <p id="provider-agreement-status" class="status" aria-live="polite"></p>
         </section>
 
         <section class="card" aria-labelledby="provider-settlement-heading">
@@ -380,6 +373,6 @@
       <p id="app-version"></p>
       <p id="app-updated-at"></p>
     </footer>
-    <script type="module" src="app.js?v=20260825-provider-saved-settings"></script>
+    <script type="module" src="app.js?v=20260825-provider-settings-flow"></script>
   </body>
 </html>
