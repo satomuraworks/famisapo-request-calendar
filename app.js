@@ -55,6 +55,8 @@ const elements = {
   calendar: document.querySelector("#calendar"),
   calendarLabel: document.querySelector("#calendar-month-label"),
   selectedDates: document.querySelector("#selected-dates"),
+  dateDurationDetails: document.querySelector("#date-duration-details"),
+  dateDurationList: document.querySelector("#date-duration-list"),
   summary: document.querySelector("#selection-summary"),
   cost: document.querySelector("#estimated-cost"),
   priceBreakdown: document.querySelector("#price-breakdown"),
@@ -457,6 +459,8 @@ function updateConfirmation() {
   const dates = sortedSelection();
   const count = dates.length;
   elements.selectedDates.replaceChildren();
+  elements.dateDurationList.replaceChildren();
+  elements.dateDurationDetails.hidden = count === 0;
   if (!count) {
     const empty = document.createElement("li");
     empty.className = "empty";
@@ -469,8 +473,14 @@ function updateConfirmation() {
       const label = document.createElement("span");
       label.className = "selected-date-label";
       label.textContent = formatJapaneseDate(date);
+      item.append(label);
+      elements.selectedDates.append(item);
+
+      const durationItem = document.createElement("label");
+      durationItem.className = "date-duration";
+      const durationDate = document.createElement("span");
+      durationDate.textContent = formatJapaneseDate(date);
       const durationLabel = document.createElement("label");
-      durationLabel.className = "date-duration";
       durationLabel.textContent = "利用時間";
       const durationSelect = document.createElement("select");
       durationSelect.className = "date-duration-select";
@@ -483,8 +493,8 @@ function updateConfirmation() {
         `自動（${formatDuration(effectiveDurationHours)}）`,
       );
       durationLabel.append(durationSelect);
-      item.append(label, durationLabel);
-      elements.selectedDates.append(item);
+      durationItem.append(durationDate, durationLabel);
+      elements.dateDurationList.append(durationItem);
     });
   }
 
@@ -1008,6 +1018,7 @@ elements.calendar.addEventListener("click", (event) => {
   } else {
     selectedDates.add(date);
   }
+  elements.dateDurationDetails.open = false;
   renderCalendar();
   updateConfirmation();
   clearSendStatusAfterDateChange();
@@ -1021,6 +1032,7 @@ elements.selectRegularWeekdaysButton.addEventListener("click", () => {
     if (selectedDates.has(date)) return;
     selectedDates.add(date);
   });
+  elements.dateDurationDetails.open = false;
   renderCalendar();
   updateConfirmation();
   if (selectedDates.size !== before) clearSendStatusAfterDateChange();
@@ -1030,18 +1042,19 @@ elements.clearSelectionButton.addEventListener("click", () => {
   if (!selectedDates.size) return;
   selectedDates.clear();
   selectedDateDurations = {};
+  elements.dateDurationDetails.open = false;
   renderCalendar();
   updateConfirmation();
   clearSendStatusAfterDateChange();
 });
-elements.selectedDates.addEventListener("change", (event) => {
+elements.dateDurationList.addEventListener("change", (event) => {
   const durationSelect = event.target.closest(".date-duration-select");
   if (!durationSelect) return;
   if (durationSelect.value === "") delete selectedDateDurations[durationSelect.dataset.date];
   else setSelectedDateDuration(durationSelect.dataset.date, Number(durationSelect.value));
   updateConfirmation();
 });
-elements.includeDurationInMessage.addEventListener("change", updateLineMessage);
+elements.includeDurationInMessage.addEventListener("change", () => updateLineMessage());
 elements.copyButton.addEventListener("click", copyMessage);
 elements.imageLayout.forEach((radio) => radio.addEventListener("change", () => {
   if (radio.checked) invalidateImage("画像形式が変わりました。内容を確認して再生成してください。");

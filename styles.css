@@ -255,11 +255,19 @@ h2 { margin: 0; font-size: 1.1rem; }
 .requester-selection-summary { min-height: 1.35em; margin: 16px 0 10px; color: var(--ink); font-size: .88rem; font-weight: 700; line-height: 1.55; }
 .selected-dates li { display: grid; gap: 7px; padding: 9px 10px; background: var(--soft); border-radius: 8px; color: var(--ink); font-size: .92rem; font-weight: 650; }
 .selected-dates .empty { grid-column: 1 / -1; color: var(--muted); font-weight: 400; }
+.date-duration-details { margin-top: 12px; border-top: 1px solid var(--line); }
+.date-duration-details summary { display: flex; align-items: center; min-height: 42px; color: var(--ink); cursor: pointer; font-size: .86rem; font-weight: 700; list-style: none; }
+.date-duration-details summary::-webkit-details-marker { display: none; }
+.date-duration-details summary::after { content: "＋"; margin-left: auto; color: var(--muted); font-size: 1.1rem; font-weight: 400; }
+.date-duration-details[open] summary::after { content: "−"; }
+.date-duration-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding-bottom: 2px; }
 .line-heading-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.line-heading-actions .button { white-space: nowrap; }
 .line-duration-toggle { display: flex; align-items: center; gap: 6px; min-height: 36px; color: var(--ink); font-size: .82rem; font-weight: 650; white-space: nowrap; }
 .line-duration-toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
 .line-duration-hint { margin: -5px 0 12px; color: var(--muted); font-size: .8rem; line-height: 1.5; }
-.date-duration { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: .78rem; font-weight: 400; }
+.date-duration { display: grid; gap: 7px; padding: 9px 10px; color: var(--ink); background: var(--soft); border-radius: 8px; font-size: .82rem; font-weight: 650; }
+.date-duration > label { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: .78rem; font-weight: 400; }
 .date-duration select { min-height: 34px; padding: 4px 7px; color: var(--ink); background: #fff; border: 1px solid #aaa; border-radius: 7px; font-size: .86rem; }
 .estimate { display: grid; gap: 7px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
 .estimate h3 { margin: 3px 0 0; font-size: .93rem; }
@@ -319,7 +327,7 @@ canvas { display: block; width: 100%; height: auto; border: 1px solid var(--line
   .card { padding: 16px; border-radius: 13px; }
   .section-heading { align-items: flex-start; flex-direction: column; }
   .section-heading .button { width: 100%; }
-  .selected-dates { grid-template-columns: 1fr; }
+  .selected-dates, .date-duration-list { grid-template-columns: 1fr; }
   .image-actions { grid-template-columns: 1fr; }
   .image-layout-picker { grid-template-columns: 1fr; }
   .settings-actions, .calendar-actions { grid-template-columns: 1fr; }
@@ -335,7 +343,7 @@ canvas { display: block; width: 100%; height: auto; border: 1px solid var(--line
 @media (max-width: 480px) {
   .line-card .section-heading { align-items: flex-start; flex-direction: column; }
   .line-heading-actions { width: 100%; justify-content: space-between; flex-wrap: wrap; }
-  .line-heading-actions .button { flex: 1 1 150px; }
+  .line-heading-actions .button { flex: 0 1 auto; min-width: 165px; }
   .provider-availability-row { grid-template-columns: 2.5rem minmax(0, 1fr); gap: 8px; }
   .provider-time-fields { grid-column: 1 / -1; }
   .provider-time-fields label { grid-template-columns: 1fr; gap: 4px; }

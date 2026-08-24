@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <title>ファミサポ予定づくり</title>
-    <link rel="stylesheet" href="styles.css?v=20260824-requester-message-duration" />
+    <link rel="stylesheet" href="styles.css?v=20260824-requester-duration-details" />
   </head>
   <body>
     <p id="reset-complete-notice" class="reset-complete-notice" role="status" aria-live="polite" hidden></p>
@@ -38,8 +38,8 @@
       </header>
 
       <nav class="mode-switch" role="tablist" aria-label="利用する機能">
-        <button id="requester-mode-tab" class="mode-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="requester-mode">依頼する</button>
-        <button id="provider-mode-tab" class="mode-tab" type="button" role="tab" aria-selected="false" aria-controls="provider-mode">依頼を受ける</button>
+        <button id="requester-mode-tab" class="mode-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="requester-mode">利用会員</button>
+        <button id="provider-mode-tab" class="mode-tab" type="button" role="tab" aria-selected="false" aria-controls="provider-mode">協力会員</button>
       </nav>
       <aside id="mode-indicator" class="mode-indicator" data-mode="requester" aria-live="polite">
         <strong id="mode-indicator-title">依頼する側</strong>
@@ -149,6 +149,10 @@
         </div>
         <p id="selection-summary" class="requester-selection-summary" aria-live="polite"></p>
         <ul id="selected-dates" class="selected-dates" aria-label="選択した依頼日"></ul>
+        <details id="date-duration-details" class="date-duration-details" hidden>
+          <summary>日ごとの利用時間を変更する</summary>
+          <div id="date-duration-list" class="date-duration-list"></div>
+        </details>
       </section>
 
       <section class="card confirmation-card" aria-labelledby="confirmation-heading">
@@ -377,6 +381,6 @@
       <p id="app-version"></p>
       <p id="app-updated-at"></p>
     </footer>
-    <script type="module" src="app.js?v=20260824-requester-message-duration"></script>
+    <script type="module" src="app.js?v=20260824-requester-duration-details"></script>
   </body>
 </html>
