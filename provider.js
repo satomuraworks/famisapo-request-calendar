@@ -132,6 +132,11 @@ function shortDate(date) {
   return `${month}/${day}（${JAPANESE_WEEKDAYS[weekday]}）`;
 }
 
+function selectedDateLabel(date) {
+  const [, month, day] = date.split("-").map(Number);
+  return `${month}月${day}日`;
+}
+
 async function copyText(value, statusElement) {
   if (!value) {
     statusElement.textContent = "コピーする内容がありません。";
@@ -148,10 +153,10 @@ async function copyText(value, statusElement) {
 export function initializeProviderMode() {
   const elements = {
     month: document.querySelector("#provider-target-month"),
-    dashboardMonth: document.querySelector("#provider-dashboard-month"), dashboard: document.querySelector("#provider-dashboard"),
+    dashboardMonth: document.querySelector("#provider-dashboard-month"), dashboardSummary: document.querySelector("#provider-dashboard-summary"), dashboard: document.querySelector("#provider-dashboard"),
     form: document.querySelector("#provider-schedule-form"), memberName: document.querySelector("#provider-member-name"),
-    plannedStart: document.querySelector("#provider-planned-start"), plannedDuration: document.querySelector("#provider-planned-duration"), plannedEnd: document.querySelector("#provider-planned-end"), content: document.querySelector("#provider-content"), contentOther: document.querySelector("#provider-content-other"), contentOtherWrap: document.querySelector("#provider-content-other-wrap"), note: document.querySelector("#provider-note"), status: document.querySelector("#provider-status"), availabilityWarning: document.querySelector("#provider-availability-warning"), formStatus: document.querySelector("#provider-form-status"), registerSelected: document.querySelector("#provider-register-selected"),
-    ocrImage: document.querySelector("#provider-ocr-image"), ocrRead: document.querySelector("#provider-ocr-read"), ocrStatus: document.querySelector("#provider-ocr-status"),
+    registrationCard: document.querySelector("#provider-registration-card"), plannedStart: document.querySelector("#provider-planned-start"), plannedDuration: document.querySelector("#provider-planned-duration"), plannedEnd: document.querySelector("#provider-planned-end"), content: document.querySelector("#provider-content"), contentOther: document.querySelector("#provider-content-other"), contentOtherWrap: document.querySelector("#provider-content-other-wrap"), note: document.querySelector("#provider-note"), noteWrap: document.querySelector("#provider-note-wrap"), noteToggle: document.querySelector("#provider-toggle-note"), status: document.querySelector("#provider-status"), availabilityWarning: document.querySelector("#provider-availability-warning"), formStatus: document.querySelector("#provider-form-status"), registerSelected: document.querySelector("#provider-register-selected"),
+    ocrDetails: document.querySelector(".provider-ocr-details"), ocrImage: document.querySelector("#provider-ocr-image"), ocrRead: document.querySelector("#provider-ocr-read"), ocrStatus: document.querySelector("#provider-ocr-status"),
     calendar: document.querySelector("#provider-calendar"), calendarLabel: document.querySelector("#provider-calendar-label"), clearSelection: document.querySelector("#provider-clear-selection"), showSelected: document.querySelector("#provider-show-selected"), selectionSummary: document.querySelector("#provider-selection-summary"), draftWrap: document.querySelector("#provider-draft-wrap"), draftList: document.querySelector("#provider-draft-list"), selectedDateLabel: document.querySelector("#provider-selected-date-label"), dayList: document.querySelector("#provider-day-list"),
     agreementText: document.querySelector("#provider-agreement-text"), agreementCopy: document.querySelector("#provider-copy-agreement"), agreementStatus: document.querySelector("#provider-agreement-status"),
     submissionText: document.querySelector("#provider-submission-text"), submissionCopy: document.querySelector("#provider-copy-submission"), markSubmitted: document.querySelector("#provider-mark-submitted"), submissionStatus: document.querySelector("#provider-submission-status"),
@@ -162,9 +167,9 @@ export function initializeProviderMode() {
   let schedules = readJson(PROVIDER_SCHEDULES_STORAGE_KEY, []).map(normalizeProviderSchedule).filter(Boolean);
   let settings = normalizeSettings(readJson(PROVIDER_SETTINGS_STORAGE_KEY, {}));
   let settlements = readJson(PROVIDER_SETTLEMENTS_STORAGE_KEY, {});
-  let selectedDate = "";
   let selectedDraftDates = new Set();
   let draftOverrides = new Map();
+  let noteExpanded = false;
 
   const currentMonth = () => elements.month.value;
   const monthSchedules = () => schedules.filter((schedule) => dateMonth(schedule.date) === currentMonth()).sort((a, b) => a.date.localeCompare(b.date) || a.plannedStart.localeCompare(b.plannedStart));
@@ -216,7 +221,7 @@ export function initializeProviderMode() {
     select.replaceChildren(...CONTENT_OPTIONS.map((content) => {
       const option = document.createElement("option");
       option.value = content;
-      option.textContent = content || "選択してください";
+      option.textContent = content || "未選択";
       option.selected = content === choice;
       return option;
     }));
@@ -231,6 +236,11 @@ export function initializeProviderMode() {
     const isOther = elements.content.value === "その他";
     elements.contentOtherWrap.hidden = !isOther;
     elements.contentOther.required = isOther;
+  }
+
+  function renderNoteField() {
+    elements.noteWrap.hidden = !noteExpanded;
+    elements.noteToggle.textContent = noteExpanded ? "備考を閉じる" : "備考を追加する";
   }
 
   function currentPlannedDuration() {
@@ -286,7 +296,10 @@ export function initializeProviderMode() {
     renderPlannedDurationOptions(1);
     renderContentOptions(elements.content);
     elements.contentOther.value = "";
+    elements.note.value = "";
+    noteExpanded = false;
     renderContentOther();
+    renderNoteField();
     renderPlannedEnd();
   }
 
@@ -328,7 +341,7 @@ export function initializeProviderMode() {
     const file = elements.ocrImage.files?.[0];
     if (!file) { elements.ocrStatus.textContent = "予定画像を選択してください。"; return; }
     elements.ocrRead.disabled = true;
-    elements.ocrStatus.textContent = "画像から日付候補を読み取っています。画像は確認前には保存されません。";
+    elements.ocrStatus.textContent = "画像から日付を読み取っています。画像は確認前には保存されません。";
     try {
       const nativeText = await recognizeImageTextWithNativeDetector(file).catch(() => "");
       let result = extractScheduleDatesFromOcr(nativeText, currentMonth());
@@ -337,19 +350,23 @@ export function initializeProviderMode() {
         const ocrText = await recognizeImageTextWithOcr(file);
         result = extractScheduleDatesFromOcr(`${nativeText}\n${ocrText}`, currentMonth());
       }
-      selectedDraftDates = new Set(result.dates);
-      draftOverrides = new Map();
       if (result.dates.length) {
         const [year, month] = result.dates[0].split("-");
+        const imageMonth = `${year}-${month}`;
+        if (imageMonth !== currentMonth()) {
+          elements.month.value = imageMonth;
+          selectedDraftDates = new Set();
+          draftOverrides = new Map();
+        }
+        result.dates.forEach((date) => selectedDraftDates.add(date));
         elements.month.value = `${year}-${month}`;
-        selectedDate = result.dates[0];
-        elements.ocrStatus.textContent = `${result.dates.length}件の日付候補をカレンダーに反映しました。内容を確認してから登録してください。`;
+        elements.ocrStatus.textContent = `${result.dates.length}日をカレンダーの選択に追加しました。内容を確認してから登録してください。`;
       } else {
-        elements.ocrStatus.textContent = "画像内の「○月○日」の文字を確認できませんでした。画像の一覧形式またはカレンダー付き形式の下部にある日付一覧が見える画像を選ぶか、カレンダーから日付を選んでください。";
+        elements.ocrStatus.textContent = "日付一覧を確認できませんでした。カレンダーから日付を選んでください。";
       }
       renderAll();
     } catch {
-      elements.ocrStatus.textContent = "画像の文字を読み取れませんでした。対応しているPNG、JPEG、WebP画像か確認し、カレンダーから日付を選んで登録してください。";
+      elements.ocrStatus.textContent = "日付一覧を確認できませんでした。カレンダーから日付を選んでください。";
     } finally {
       elements.ocrRead.disabled = false;
     }
@@ -368,6 +385,16 @@ export function initializeProviderMode() {
       ["未集金", settlement.checklist.collected ? 0 : rows.filter((row) => row.status === "精算済み").length],
     ];
     elements.dashboardMonth.textContent = monthLabel(currentMonth());
+    const needsConfirmation = rows.filter((row) => ["依頼あり", "調整中"].includes(row.status)).length;
+    elements.dashboardSummary.replaceChildren(...[
+      ["今月の予定", rows.length],
+      ["確認が必要", needsConfirmation],
+    ].map(([label, count]) => {
+      const item = document.createElement("div");
+      item.className = "provider-dashboard-summary-item";
+      item.innerHTML = `<span>${label}</span><strong>${count}件</strong>`;
+      return item;
+    }));
     elements.dashboard.replaceChildren(...counts.map(([label, count]) => {
       const card = document.createElement("div");
       card.className = "provider-dashboard-card";
@@ -401,12 +428,11 @@ export function initializeProviderMode() {
       button.dataset.date = isoDate;
       button.dataset.weekday = weekday;
       const isDraft = selectedDraftDates.has(isoDate);
-      button.setAttribute("aria-label", `${formatJapaneseDate(isoDate, true)}${isDraft ? "、登録候補として選択中" : ""}${count ? `、予定${count}件、${daySchedules.map((schedule) => schedule.status).join("、")}` : ""}`);
+      button.setAttribute("aria-label", `${formatJapaneseDate(isoDate, true)}${isDraft ? "、選択中" : ""}${count ? `、予定${count}件、${daySchedules.map((schedule) => schedule.status).join("、")}` : ""}`);
       button.setAttribute("aria-pressed", String(isDraft));
       button.innerHTML = `<span>${day}</span>${calendarStatus ? `<small>${calendarStatus}</small>` : ""}`;
       if (count) button.classList.add("has-schedules");
       if (isDraft) button.classList.add("is-selected", "is-draft");
-      if (selectedDate === isoDate) button.classList.add("is-inspected");
       elements.calendar.append(button);
     });
   }
@@ -424,10 +450,12 @@ export function initializeProviderMode() {
 
   function renderDraftList() {
     const dates = [...selectedDraftDates].sort();
-    elements.selectionSummary.textContent = dates.length ? `${dates.length}日を予定候補として選択中です。` : "日付を選択してください。";
+    elements.selectionSummary.textContent = dates.length ? `${dates.length}日選択中　${dates.map(selectedDateLabel).join("、")}` : "日付を選んでください。";
     elements.registerSelected.disabled = !dates.length;
+    elements.registerSelected.textContent = dates.length ? `選択した${dates.length}日を登録する` : "選択した日を登録する";
     elements.clearSelection.disabled = !dates.length;
-    elements.showSelected.disabled = !dates.length;
+    elements.showSelected.disabled = false;
+    elements.registrationCard.hidden = !dates.length;
     elements.draftWrap.hidden = !dates.length;
     elements.draftList.replaceChildren();
     dates.forEach((date) => {
@@ -436,17 +464,17 @@ export function initializeProviderMode() {
       article.className = "provider-draft-item";
       const heading = document.createElement("div"); heading.className = "provider-draft-heading";
       const title = document.createElement("strong"); title.textContent = formatJapaneseDate(date, true);
-      const remove = document.createElement("button"); remove.type = "button"; remove.className = "button danger"; remove.textContent = "候補から外す";
+      const state = document.createElement("span"); state.className = "provider-draft-state"; state.textContent = draftOverrides.has(date) ? "この日だけ変更済み" : "共通設定を使用";
+      const remove = document.createElement("button"); remove.type = "button"; remove.className = "button danger"; remove.textContent = "外す";
       remove.addEventListener("click", () => { selectedDraftDates.delete(date); draftOverrides.delete(date); renderAll(); });
-      heading.append(title, remove);
+      const headingText = document.createElement("div"); headingText.className = "provider-draft-title"; headingText.append(title, state);
+      heading.append(headingText, remove);
 
       const details = document.createElement("details");
       const summary = document.createElement("summary"); summary.textContent = "この日だけ変更";
       const fields = document.createElement("div"); fields.className = "provider-draft-fields";
       const memberLabel = document.createElement("label"); memberLabel.textContent = "利用会員";
       const member = document.createElement("input"); member.maxLength = 40; member.value = draft.memberName; memberLabel.append(member);
-      const dateLabel = document.createElement("label"); dateLabel.textContent = "日付";
-      const dateInput = document.createElement("input"); dateInput.type = "date"; dateInput.value = date; dateLabel.append(dateInput);
       const startLabel = document.createElement("label"); startLabel.textContent = "開始";
       const start = document.createElement("select"); renderPlannedStartOptions(start, draft.plannedStart); startLabel.append(start);
       const durationLabel = document.createElement("label"); durationLabel.textContent = "利用時間";
@@ -473,13 +501,8 @@ export function initializeProviderMode() {
       [member, start, duration, other, note, status].forEach((field) => field.addEventListener("change", saveOverride));
       start.addEventListener("change", updateEnd); duration.addEventListener("change", updateEnd);
       content.addEventListener("change", () => { otherLabel.hidden = content.value !== "その他"; saveOverride(); });
-      dateInput.addEventListener("change", () => {
-        if (!isIsoDate(dateInput.value) || selectedDraftDates.has(dateInput.value)) { dateInput.value = date; return; }
-        const override = { ...draftForDate(date), date: dateInput.value };
-        selectedDraftDates.delete(date); draftOverrides.delete(date); selectedDraftDates.add(dateInput.value); draftOverrides.set(dateInput.value, override); renderAll();
-      });
       updateEnd();
-      fields.append(memberLabel, dateLabel, startLabel, durationLabel, end, contentLabel, otherLabel, noteLabel, statusLabel);
+      fields.append(memberLabel, startLabel, durationLabel, end, contentLabel, otherLabel, noteLabel, statusLabel);
       details.append(summary, fields);
       article.append(heading, details);
       elements.draftList.append(article);
@@ -494,15 +517,10 @@ export function initializeProviderMode() {
 
   function renderDayList() {
     elements.dayList.replaceChildren();
-    if (!selectedDate) {
-      elements.selectedDateLabel.textContent = "日付を選択してください";
-      elements.dayList.textContent = "カレンダーの日付を選ぶと、その日の予定を確認できます。";
-      return;
-    }
-    const rows = schedules.filter((schedule) => schedule.date === selectedDate).sort((a, b) => a.plannedStart.localeCompare(b.plannedStart));
-    elements.selectedDateLabel.textContent = formatJapaneseDate(selectedDate, true);
+    const rows = monthSchedules();
+    elements.selectedDateLabel.textContent = `${monthLabel(currentMonth())}の予定`;
     if (!rows.length) {
-      elements.dayList.textContent = "この日の予定はありません。";
+      elements.dayList.textContent = "この月に登録済みの予定はありません。";
       return;
     }
     rows.forEach((schedule) => {
@@ -510,10 +528,12 @@ export function initializeProviderMode() {
       article.className = "provider-schedule-item";
       const header = document.createElement("p");
       header.className = "provider-schedule-heading";
-      header.textContent = `${schedule.memberName || "表示名未入力"}　${schedule.plannedStart}〜${schedule.plannedEnd}`;
+      header.textContent = `${shortDate(schedule.date)}　${schedule.memberName || "表示名未入力"}　${schedule.plannedStart}〜${schedule.plannedEnd}`;
       const details = document.createElement("p");
       details.className = "provider-schedule-details";
-      details.textContent = [schedule.content, schedule.note].filter(Boolean).join("　") || "利用内容・備考は未入力です。";
+      details.textContent = [schedule.content || "利用内容未入力", schedule.status].filter(Boolean).join("　");
+      const editDetails = document.createElement("details"); editDetails.className = "provider-schedule-edit";
+      const editSummary = document.createElement("summary"); editSummary.textContent = "編集";
       const fields = document.createElement("div");
       fields.className = "provider-schedule-fields";
       const statusLabel = document.createElement("label"); statusLabel.textContent = "ステータス";
@@ -526,17 +546,20 @@ export function initializeProviderMode() {
       const actualStart = document.createElement("input"); actualStart.type = "time"; actualStart.value = schedule.actualStart;
       const actualEnd = document.createElement("input"); actualEnd.type = "time"; actualEnd.value = schedule.actualEnd;
       const actualLabel = document.createElement("label"); actualLabel.className = "provider-actual-time"; actualLabel.textContent = "実績"; actualLabel.append(actualStart, document.createTextNode("〜"), actualEnd);
-      const save = document.createElement("button"); save.type = "button"; save.className = "button secondary"; save.textContent = "状態・実績を保存";
+      const noteLabel = document.createElement("label"); noteLabel.className = "provider-schedule-note"; noteLabel.textContent = "備考";
+      const note = document.createElement("textarea"); note.rows = 2; note.maxLength = 300; note.value = schedule.note; noteLabel.append(note);
+      const save = document.createElement("button"); save.type = "button"; save.className = "button secondary"; save.textContent = "変更を保存";
       save.addEventListener("click", () => {
         if (!isTime(actualStart.value) || !isTime(actualEnd.value) || durationHours(actualStart.value, actualEnd.value) <= 0) {
           elements.formStatus.textContent = "実績終了時刻は開始時刻より後にしてください。";
           return;
         }
-        updateSchedule(schedule.id, { status: status.value, content: contentFromFields(content, contentOther), actualStart: actualStart.value, actualEnd: actualEnd.value });
-        elements.formStatus.textContent = "利用内容、状態、実績時間を保存しました。";
+        updateSchedule(schedule.id, { status: status.value, content: contentFromFields(content, contentOther), note: note.value.trim(), actualStart: actualStart.value, actualEnd: actualEnd.value });
+        elements.formStatus.textContent = "予定の内容を保存しました。";
       });
-      fields.append(statusLabel, contentLabel, contentOtherLabel, actualLabel, save);
-      article.append(header, details, fields);
+      fields.append(statusLabel, contentLabel, contentOtherLabel, actualLabel, noteLabel, save);
+      editDetails.append(editSummary, fields);
+      article.append(header, details, editDetails);
       elements.dayList.append(article);
     });
   }
@@ -614,7 +637,7 @@ export function initializeProviderMode() {
   }
 
   function updateAvailabilityWarning() {
-    const date = [...selectedDraftDates].sort()[0] ?? selectedDate;
+    const date = [...selectedDraftDates].sort()[0];
     const start = elements.plannedStart.value;
     const end = plannedEndInfo().time;
     if (!isIsoDate(date) || !isTime(start) || !isTime(end)) { elements.availabilityWarning.textContent = "日付と予定開始時刻を選ぶと、対応可能時間の目安を表示します。"; return; }
@@ -636,22 +659,27 @@ export function initializeProviderMode() {
   renderPlannedDurationOptions(1);
   renderContentOptions(elements.content);
   renderContentOther();
+  renderNoteField();
   renderPlannedEnd();
   renderAvailabilitySettings();
   renderAll();
 
-  elements.month.addEventListener("change", () => { selectedDate = ""; selectedDraftDates = new Set(); draftOverrides = new Map(); renderAll(); });
+  elements.month.addEventListener("change", () => { selectedDraftDates = new Set(); draftOverrides = new Map(); renderAll(); });
   elements.calendar.addEventListener("click", (event) => {
     const button = event.target.closest(".provider-day-button");
     if (!button) return;
-    selectedDate = button.dataset.date;
-    if (selectedDraftDates.has(selectedDate)) {
-      selectedDraftDates.delete(selectedDate); draftOverrides.delete(selectedDate);
-    } else selectedDraftDates.add(selectedDate);
+    const date = button.dataset.date;
+    if (selectedDraftDates.has(date)) {
+      selectedDraftDates.delete(date); draftOverrides.delete(date);
+    } else selectedDraftDates.add(date);
     renderAll();
   });
   elements.clearSelection.addEventListener("click", () => { selectedDraftDates = new Set(); draftOverrides = new Map(); renderAll(); });
-  elements.showSelected.addEventListener("click", () => elements.draftWrap.scrollIntoView({ behavior: "smooth", block: "start" }));
+  elements.showSelected.addEventListener("click", () => {
+    elements.ocrDetails.open = true;
+    elements.ocrDetails.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  elements.noteToggle.addEventListener("click", () => { noteExpanded = !noteExpanded; renderNoteField(); });
   elements.plannedStart.addEventListener("change", () => { renderPlannedEnd(); updateAvailabilityWarning(); renderDraftList(); });
   elements.plannedDuration.addEventListener("change", () => { renderPlannedEnd(); updateAvailabilityWarning(); renderDraftList(); });
   elements.content.addEventListener("change", () => { renderContentOther(); renderDraftList(); });
@@ -670,7 +698,6 @@ export function initializeProviderMode() {
     }
     schedules.push(...newSchedules);
     if (!persistSchedules()) { elements.formStatus.textContent = "端末内に保存できませんでした。"; return; }
-    selectedDate = newSchedules[0]?.date ?? "";
     selectedDraftDates = new Set(); draftOverrides = new Map();
     clearScheduleForm();
     elements.formStatus.textContent = `${newSchedules.length}件を新しい予定として登録しました。既存予定は変更していません。`;
@@ -715,13 +742,13 @@ export function initializeProviderMode() {
   elements.deleteMonth.addEventListener("click", () => {
     const count = monthSchedules().length;
     if (!count || !window.confirm(`${monthLabel(currentMonth())}の予定${count}件と月末事務の記録を削除しますか？`)) return;
-    schedules = schedules.filter((row) => dateMonth(row.date) !== currentMonth()); delete settlements[currentMonth()]; persistSchedules(); persistSettlements(); selectedDate = ""; renderAll(); elements.maintenanceStatus.textContent = "この月の予定を削除しました。";
+    schedules = schedules.filter((row) => dateMonth(row.date) !== currentMonth()); delete settlements[currentMonth()]; persistSchedules(); persistSettlements(); renderAll(); elements.maintenanceStatus.textContent = "この月の予定を削除しました。";
   });
   elements.deleteAll.addEventListener("click", () => {
     if (!window.confirm("依頼を受ける側の予定、設定、月末事務の全データを削除しますか？ この操作は元に戻せません。")) return;
     try {
       window.localStorage.removeItem(PROVIDER_SETTINGS_STORAGE_KEY); window.localStorage.removeItem(PROVIDER_SCHEDULES_STORAGE_KEY); window.localStorage.removeItem(PROVIDER_SETTLEMENTS_STORAGE_KEY);
-      schedules = []; settings = normalizeSettings({}); settlements = {}; selectedDate = ""; renderAvailabilitySettings(); renderAll(); elements.maintenanceStatus.textContent = "依頼を受ける側の全データを削除しました。";
+      schedules = []; settings = normalizeSettings({}); settlements = {}; renderAvailabilitySettings(); renderAll(); elements.maintenanceStatus.textContent = "依頼を受ける側の全データを削除しました。";
     } catch { elements.maintenanceStatus.textContent = "削除できませんでした。"; }
   });
 }

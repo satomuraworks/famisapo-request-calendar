@@ -33,7 +33,7 @@ import {
   trackAnalyticsEvent,
 } from "./analytics.js?v=20260824-weekday-durations";
 import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260824-weekday-durations";
-import { initializeProviderMode } from "./provider.js?v=20260824-provider-flow";
+import { initializeProviderMode } from "./provider.js?v=20260824-provider-rebuild";
 
 const elements = {
   month: document.querySelector("#target-month"),
@@ -133,10 +133,10 @@ function setAppMode(mode) {
   elements.modeIndicatorTitle.textContent = requester ? "依頼する側" : "依頼を受ける側";
   elements.modeIndicatorDescription.textContent = requester
     ? "利用したい日を選び、連絡用の文章と予定画像を作ります。"
-    : "受ける日を選び、予定・実績・月末精算を管理します。";
+    : "受ける日を選んで、予定をまとめて登録・管理します。";
   elements.pageDescription.textContent = requester
     ? "利用を依頼する日を選び、連絡用の文章と画像を作成します。"
-    : "依頼を受ける日を選び、予定・実績・月末精算をまとめて管理します。";
+    : "受ける日を選んで、予定をまとめて登録・管理します。";
 }
 
 function renderAnalyticsNotice() {
