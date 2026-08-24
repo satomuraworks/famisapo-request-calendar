@@ -487,7 +487,12 @@ function updateConfirmation() {
     });
   }
 
-  elements.summary.textContent = `合計 ${count}日間`;
+  elements.summary.textContent = count
+    ? `${count}日選択中　${dates.map((date) => {
+      const [, month, day] = date.split("-").map(Number);
+      return `${month}月${day}日`;
+    }).join("、")}`
+    : "日付を選んでください。";
   const settings = getCurrentUsageSettings();
   const perHour = calculatePricePerVisit(settings);
   const durationHoursByDate = selectedDateDurationMap(dates, settings);
