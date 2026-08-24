@@ -8,6 +8,7 @@ import {
   calculatePricePerVisit,
   clearAppStorage,
   DEFAULT_USAGE_SETTINGS,
+  durationHoursForDate,
   formatYen,
   latestVersionUrl,
   makeLineMessage,
@@ -77,13 +78,26 @@ test("不正な料金は0円として扱い、保存済みの旧祝日設定を�
     { firstChildFee: 0, additionalChildFee: 0, transportFee: 0 },
   );
   const settings = normalizeUsageSettings({ childrenCount: 2, firstChildFee: -1, additionalChildFee: 350.5, transportFee: "abc", includeHolidays: true });
-  assert.deepEqual(settings, { childrenCount: 2, firstChildFee: 0, additionalChildFee: 0, transportFee: 0, durationHours: 1, regularWeekdays: [], regularHolidays: true });
+  assert.deepEqual(settings, { childrenCount: 2, firstChildFee: 0, additionalChildFee: 0, transportFee: 0, durationHours: 1, weekdayDurationHours: {}, regularWeekdays: [], regularHolidays: true });
   assert.equal(normalizeUsageSettings({ regularHolidays: false, includeHolidays: true }).regularHolidays, false);
   assert.equal(normalizeUsageSettings({ durationHours: 0.5 }).durationHours, 0.5);
   assert.equal(normalizeUsageSettings({ durationHours: 24 }).durationHours, 24);
   assert.equal(normalizeUsageSettings({ durationHours: 0.75 }).durationHours, 1);
   assert.equal(normalizeUsageSettings({ durationHours: 24.5 }).durationHours, 1);
   assert.equal(calculatePricePerVisit({ ...DEFAULT_USAGE_SETTINGS, firstChildFee: 0, additionalChildFee: 0, transportFee: 0 }), 0);
+});
+
+test("曜日別の利用時間は共通設定より優先し、祝日設定は曜日設定より優先する", () => {
+  const settings = normalizeUsageSettings({
+    durationHours: 2,
+    weekdayDurationHours: { 1: 3, 2: 3.5, holiday: 4, invalid: 12, 6: 0.75 },
+  });
+  assert.deepEqual(settings.weekdayDurationHours, { 1: 3, 2: 3.5, holiday: 4 });
+  assert.equal(durationHoursForDate("2026-08-03", settings), 3); // 月
+  assert.equal(durationHoursForDate("2026-08-04", settings), 3.5); // 火
+  assert.equal(durationHoursForDate("2026-08-11", settings), 4); // 山の日の火
+  assert.equal(durationHoursForDate("2026-08-05", settings), 2); // 水は共通設定
+  assert.equal(calculateEstimateForDurations([3, 3.5, 4, 2], { ...settings, firstChildFee: 700, transportFee: 100 }), 9150);
 });
 
 test("指定曜日の一括選択では祝日を除外する", () => {
@@ -105,11 +119,13 @@ test("祝日選択では曜日に関係なく祝日を追加し、重複しな�
 });
 
 test("LINE文章に日付、曜日、合計日数を昇順で含め、料金を含めない", () => {
-  const message = makeLineMessage(2026, 7, ["2026-08-05", "2026-08-03", "2026-08-04"]);
+  const message = makeLineMessage(2026, 7, ["2026-08-05", "2026-08-03", "2026-08-04"], { "2026-08-03": 2, "2026-08-04": 3.5, "2026-08-05": 4 });
   assert.match(message, /^2026年8月のファミサポ依頼日についてご連絡します。/);
   assert.ok(message.indexOf("8月3日（月）") < message.indexOf("8月4日（火）"));
   assert.ok(message.indexOf("8月4日（火）") < message.indexOf("8月5日（水）"));
   assert.match(message, /以上の3日間をお願いいたします。/);
+  assert.match(message, /8月3日（月）　2時間/);
+  assert.match(message, /8月4日（火）　3時間30分/);
   assert.doesNotMatch(message, /円|料金|内訳|概算|子ども/);
 });
 
@@ -140,6 +156,6 @@ test("最新版URLはvパラメータを付与または置き換える", () => {
 });
 
 test("バージョンと更新日はversion.jsから取得する", () => {
-  assert.equal(APP_VERSION, "1.4.1");
+  assert.equal(APP_VERSION, "1.5.0");
   assert.equal(APP_UPDATED_AT, "2026-08-24");
 });

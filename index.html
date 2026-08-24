@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <title>ファミサポ予定づくり</title>
-    <link rel="stylesheet" href="styles.css?v=20260824-consent-modal" />
+    <link rel="stylesheet" href="styles.css?v=20260824-weekday-durations" />
   </head>
   <body>
     <p id="reset-complete-notice" class="reset-complete-notice" role="status" aria-live="polite" hidden></p>
@@ -67,6 +67,23 @@
               <span class="yen-input"><select id="duration-hours" aria-describedby="duration-hint"></select>時間</span>
               <small id="duration-hint">30分から24時間まで選べます。日付を選択した後は、日付ごとの利用時間を個別に変更できます。</small>
             </label>
+
+            <details id="weekday-duration-details" class="weekday-duration-details">
+              <summary>曜日ごとの利用時間を設定<span id="weekday-duration-summary">共通設定を使用</span></summary>
+              <div class="weekday-duration-content">
+                <p>曜日によって利用時間が異なる場合に設定できます。設定していない曜日は、上の共通利用時間を使用します。</p>
+                <div class="weekday-duration-grid">
+                  <label><span>月</span><select data-weekday-duration="1" aria-label="月曜日の利用時間"></select></label>
+                  <label><span>火</span><select data-weekday-duration="2" aria-label="火曜日の利用時間"></select></label>
+                  <label><span>水</span><select data-weekday-duration="3" aria-label="水曜日の利用時間"></select></label>
+                  <label><span>木</span><select data-weekday-duration="4" aria-label="木曜日の利用時間"></select></label>
+                  <label><span>金</span><select data-weekday-duration="5" aria-label="金曜日の利用時間"></select></label>
+                  <label><span>土</span><select data-weekday-duration="6" aria-label="土曜日の利用時間"></select></label>
+                  <label><span>日</span><select data-weekday-duration="0" aria-label="日曜日の利用時間"></select></label>
+                  <label><span>祝日</span><select data-weekday-duration="holiday" aria-label="祝日の利用時間"></select></label>
+                </div>
+              </div>
+            </details>
 
             <label class="setting-field" for="first-child-fee">
               <span class="setting-label">子ども1人目の1時間料金</span>
@@ -218,6 +235,6 @@
       <p id="app-version"></p>
       <p id="app-updated-at"></p>
     </footer>
-    <script type="module" src="app.js?v=20260824-consent-modal"></script>
+    <script type="module" src="app.js?v=20260824-weekday-durations-v3"></script>
   </body>
 </html>

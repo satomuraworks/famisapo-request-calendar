@@ -10,6 +10,8 @@ import {
   calculateEstimateForDurations,
   calculatePricePerVisit,
   DEFAULT_USAGE_SETTINGS,
+  durationHoursForDate,
+  formatDuration,
   formatYen,
   HISTORY_STORAGE_KEY,
   latestVersionUrl,
@@ -21,15 +23,16 @@ import {
   SEND_STATUS_STORAGE_KEY,
   sendStatusLabel,
   SETTINGS_STORAGE_KEY,
-} from "./app-utils.js?v=20260824-contact-wording";
+  WEEKDAY_DURATION_KEYS,
+} from "./app-utils.js?v=20260824-weekday-durations";
 import {
   disableAnalytics,
   getAnalyticsConsent,
   initializeAnalytics,
   saveAnalyticsConsent,
   trackAnalyticsEvent,
-} from "./analytics.js?v=20260824-consent-modal";
-import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260824-consent-modal";
+} from "./analytics.js?v=20260824-weekday-durations";
+import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260824-weekday-durations";
 
 const elements = {
   month: document.querySelector("#target-month"),
@@ -40,6 +43,9 @@ const elements = {
   additionalChildFee: document.querySelector("#additional-child-fee"),
   transportFee: document.querySelector("#transport-fee"),
   durationHours: document.querySelector("#duration-hours"),
+  weekdayDurationDetails: document.querySelector("#weekday-duration-details"),
+  weekdayDurationInputs: document.querySelectorAll("select[data-weekday-duration]"),
+  weekdayDurationSummary: document.querySelector("#weekday-duration-summary"),
   regularWeekdays: document.querySelectorAll("input[name='regular-weekday']"),
   regularHoliday: document.querySelector("#regular-holiday"),
   saveSettingsButton: document.querySelector("#save-settings-button"),
@@ -169,20 +175,19 @@ function sortedSelection() {
 }
 
 function getDurationHours() {
-  const duration = elements.durationHours.valueAsNumber;
+  const duration = Number(elements.durationHours.value);
   return normalizeDurationHours(duration, 0);
 }
 
-function formatDuration(hours) {
-  const totalMinutes = Math.round(hours * 60);
-  const wholeHours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  if (!wholeHours) return `${minutes}分`;
-  return minutes ? `${wholeHours}時間${minutes}分` : `${wholeHours}時間`;
-}
-
-function populateDurationOptions(select, selectedHours = 1) {
+function populateDurationOptions(select, selectedHours = 1, includeCommonOption = false, commonOptionLabel = "共通設定を使用") {
   select.replaceChildren();
+  if (includeCommonOption) {
+    const commonOption = document.createElement("option");
+    commonOption.value = "";
+    commonOption.textContent = commonOptionLabel;
+    commonOption.selected = selectedHours === null || selectedHours === undefined;
+    select.append(commonOption);
+  }
   for (let halfHour = 1; halfHour <= 48; halfHour += 1) {
     const durationHours = halfHour / 2;
     const option = document.createElement("option");
@@ -193,8 +198,14 @@ function populateDurationOptions(select, selectedHours = 1) {
   }
 }
 
-function getSelectedDateDuration(date) {
-  return normalizeDurationHours(selectedDateDurations[date]);
+function hasSelectedDateDurationOverride(date) {
+  return Object.hasOwn(selectedDateDurations, date);
+}
+
+function getSelectedDateDuration(date, settings = getCurrentUsageSettings()) {
+  return hasSelectedDateDurationOverride(date)
+    ? normalizeDurationHours(selectedDateDurations[date])
+    : durationHoursForDate(date, settings);
 }
 
 function setSelectedDateDuration(date, durationHours) {
@@ -202,7 +213,12 @@ function setSelectedDateDuration(date, durationHours) {
 }
 
 function selectedDurationHours(dates = sortedSelection()) {
-  return dates.map((date) => getSelectedDateDuration(date));
+  const settings = getCurrentUsageSettings();
+  return dates.map((date) => getSelectedDateDuration(date, settings));
+}
+
+function selectedDateDurationMap(dates = sortedSelection(), settings = getCurrentUsageSettings()) {
+  return Object.fromEntries(dates.map((date) => [date, getSelectedDateDuration(date, settings)]));
 }
 
 function normalizeDateDurations(dates, durations, fallback = DEFAULT_USAGE_SETTINGS.durationHours) {
@@ -260,9 +276,24 @@ function getCurrentUsageSettings() {
     additionalChildFee: readFee(elements.additionalChildFee),
     transportFee: readFee(elements.transportFee),
     durationHours: getDurationHours(),
+    weekdayDurationHours: Object.fromEntries([...elements.weekdayDurationInputs].flatMap((input) => {
+      const durationHours = normalizeDurationHours(input.value === "" ? null : Number(input.value), null);
+      return durationHours === null ? [] : [[input.dataset.weekdayDuration, durationHours]];
+    })),
     regularWeekdays: [...elements.regularWeekdays].filter((input) => input.checked).map((input) => Number(input.value)),
     regularHolidays: elements.regularHoliday.checked,
   };
+}
+
+function weekdayDurationLabel(key) {
+  return key === "holiday" ? "祝日" : ["日", "月", "火", "水", "木", "金", "土"][Number(key)];
+}
+
+function renderWeekdayDurationSummary(settings = getCurrentUsageSettings()) {
+  const configuredKeys = WEEKDAY_DURATION_KEYS.filter((key) => settings.weekdayDurationHours[key] !== undefined);
+  elements.weekdayDurationSummary.textContent = configuredKeys.length
+    ? `設定済み：${configuredKeys.map(weekdayDurationLabel).join("・")}`
+    : "共通設定を使用";
 }
 
 function renderUsageSettings() {
@@ -273,6 +304,10 @@ function renderUsageSettings() {
   elements.additionalChildFee.value = usageSettings.additionalChildFee;
   elements.transportFee.value = usageSettings.transportFee;
   elements.durationHours.value = usageSettings.durationHours;
+  elements.weekdayDurationInputs.forEach((input) => {
+    input.value = usageSettings.weekdayDurationHours[input.dataset.weekdayDuration] ?? "";
+  });
+  renderWeekdayDurationSummary(usageSettings);
   const regularWeekdays = new Set(usageSettings.regularWeekdays);
   elements.regularWeekdays.forEach((input) => { input.checked = regularWeekdays.has(Number(input.value)); });
   elements.regularHoliday.checked = usageSettings.regularHolidays;
@@ -281,6 +316,7 @@ function renderUsageSettings() {
 function loadSettings() {
   usageSettings = normalizeUsageSettings(readStoredJson(SETTINGS_STORAGE_KEY, DEFAULT_USAGE_SETTINGS));
   renderUsageSettings();
+  elements.weekdayDurationDetails.open = Object.keys(usageSettings.weekdayDurationHours).length > 0;
 }
 
 function saveSettings() {
@@ -411,7 +447,13 @@ function updateConfirmation() {
       const durationSelect = document.createElement("select");
       durationSelect.className = "date-duration-select";
       durationSelect.dataset.date = date;
-      populateDurationOptions(durationSelect, getSelectedDateDuration(date));
+      const effectiveDurationHours = getSelectedDateDuration(date);
+      populateDurationOptions(
+        durationSelect,
+        hasSelectedDateDurationOverride(date) ? effectiveDurationHours : null,
+        true,
+        `自動（${formatDuration(effectiveDurationHours)}）`,
+      );
       durationLabel.append(durationSelect);
       item.append(label, durationLabel);
       elements.selectedDates.append(item);
@@ -421,11 +463,12 @@ function updateConfirmation() {
   elements.summary.textContent = `合計 ${count}日間`;
   const settings = getCurrentUsageSettings();
   const perHour = calculatePricePerVisit(settings);
-  const durationHours = selectedDurationHours(dates);
+  const durationHoursByDate = selectedDateDurationMap(dates, settings);
+  const durationHours = dates.map((date) => durationHoursByDate[date]);
   const totalDurationHours = durationHours.reduce((total, duration) => total + duration, 0);
   const hourlyUsageFee = perHour - settings.transportFee;
   elements.cost.textContent = `${count}回（利用料金${formatYen(hourlyUsageFee)}円 × 合計${formatDuration(totalDurationHours)} ＋ 交通費${formatYen(settings.transportFee)}円 × ${count}回） = ${formatYen(calculateEstimateForDurations(durationHours, settings))}円`;
-  elements.message.value = makeLineMessage(getSelectedMonth().year, getSelectedMonth().monthIndex, dates);
+  elements.message.value = makeLineMessage(getSelectedMonth().year, getSelectedMonth().monthIndex, dates, durationHoursByDate);
   elements.copyButton.disabled = count === 0;
   elements.generateButton.disabled = count === 0;
   elements.saveButton.disabled = count === 0 || !storageAvailable;
@@ -496,7 +539,8 @@ function renderHistory() {
     restore.className = "history-restore";
     restore.dataset.month = entry.month;
     const [year, month] = entry.month.split("-").map(Number);
-    restore.innerHTML = `<strong>${year}年${month}月・${entry.dates.length}日間・${sendStatusLabel(entry.sendStatus)}</strong><span>${new Date(entry.savedAt).toLocaleString("ja-JP")}</span>`;
+    const totalDurationHours = entry.dates.reduce((total, date) => total + entry.durationHoursByDate[date], 0);
+    restore.innerHTML = `<strong>${year}年${month}月・${entry.dates.length}日間・合計${formatDuration(totalDurationHours)}・${sendStatusLabel(entry.sendStatus)}</strong><span>${new Date(entry.savedAt).toLocaleString("ja-JP")}</span>`;
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "button danger history-delete";
@@ -520,7 +564,7 @@ function saveCurrentHistory() {
   const entry = {
     month,
     dates,
-    durationHoursByDate: normalizeDateDurations(dates, selectedDateDurations),
+    durationHoursByDate: selectedDateDurationMap(dates),
     count: dates.length,
     sendStatus: getCurrentSendStatus(),
     savedAt: new Date().toISOString(),
@@ -718,14 +762,18 @@ function drawImageFooter(ctx, count) {
   drawTextCentered(ctx, "ご確認よろしくお願いいたします。", 1315, "400 32px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", "#444");
 }
 
-function drawListOnly(ctx, dates) {
+function formatDateWithDuration(date, durationHoursByDate) {
+  return `${formatJapaneseDate(date)}　${formatDuration(durationHoursByDate[date])}`;
+}
+
+function drawListOnly(ctx, dates, durationHoursByDate) {
   const listTop = 365;
   const listHeight = 695;
   const lineHeight = Math.min(76, listHeight / dates.length);
-  const fontSize = Math.min(46, Math.max(18, Math.floor(lineHeight * 0.74)));
+  const fontSize = Math.min(40, Math.max(17, Math.floor(lineHeight * 0.68)));
   const startY = listTop + ((listHeight - lineHeight * dates.length) / 2) + lineHeight * 0.72;
   dates.forEach((date, index) => {
-    drawTextCentered(ctx, formatJapaneseDate(date), startY + lineHeight * index, `700 ${fontSize}px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif`, "#c92a2a");
+    drawTextCentered(ctx, formatDateWithDuration(date, durationHoursByDate), startY + lineHeight * index, `700 ${fontSize}px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif`, "#c92a2a");
   });
 }
 
@@ -772,31 +820,32 @@ function drawSmallCalendar(ctx, year, monthIndex, dates) {
   return calendarBottom;
 }
 
-function drawListWithCalendar(ctx, dates, listTop) {
+function drawListWithCalendar(ctx, dates, durationHoursByDate, listTop) {
   const columns = 2;
   const rows = Math.ceil(dates.length / columns);
   const listHeight = 360;
   const lineHeight = Math.min(44, listHeight / rows);
-  const fontSize = Math.min(28, Math.max(16, Math.floor(lineHeight * 0.7)));
+  const fontSize = Math.min(24, Math.max(14, Math.floor(lineHeight * 0.62)));
   dates.forEach((date, index) => {
     const column = Math.floor(index / rows);
     const row = index % rows;
     const x = column === 0 ? 330 : 750;
-    drawTextCentered(ctx, formatJapaneseDate(date), listTop + 30 + row * lineHeight, `700 ${fontSize}px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif`, "#c92a2a", x);
+    drawTextCentered(ctx, formatDateWithDuration(date, durationHoursByDate), listTop + 30 + row * lineHeight, `700 ${fontSize}px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif`, "#c92a2a", x);
   });
 }
 
 function drawImage() {
   const dates = sortedSelection();
   if (!dates.length) return;
+  const durationHoursByDate = selectedDateDurationMap(dates);
   const { year, monthIndex } = getSelectedMonth();
   const ctx = elements.canvas.getContext("2d");
   drawImageHeader(ctx, year, monthIndex);
   if (getImageLayout() === "calendar") {
     const calendarBottom = drawSmallCalendar(ctx, year, monthIndex, dates);
-    drawListWithCalendar(ctx, dates, Math.max(740, calendarBottom + 70));
+    drawListWithCalendar(ctx, dates, durationHoursByDate, Math.max(740, calendarBottom + 70));
   } else {
-    drawListOnly(ctx, dates);
+    drawListOnly(ctx, dates, durationHoursByDate);
   }
   drawImageFooter(ctx, dates.length);
 }
@@ -841,6 +890,7 @@ async function downloadImage() {
 
 elements.month.value = nextMonthValue();
 populateDurationOptions(elements.durationHours);
+elements.weekdayDurationInputs.forEach((input) => populateDurationOptions(input, null, true));
 loadSettings();
 sendStatuses = loadSendStatuses();
 historyEntries = loadHistory();
@@ -867,10 +917,14 @@ elements.childrenIncrease.addEventListener("click", () => {
   });
 });
 elements.durationHours.addEventListener("change", () => {
-  const duration = elements.durationHours.valueAsNumber;
+  const duration = Number(elements.durationHours.value);
   elements.durationHours.setAttribute("aria-invalid", String(elements.durationHours.value !== "" && (!Number.isFinite(duration) || duration < 0.5 || duration > 24 || !Number.isInteger(duration * 2))));
   updateConfirmation();
 });
+elements.weekdayDurationInputs.forEach((input) => input.addEventListener("change", () => {
+  renderWeekdayDurationSummary();
+  updateConfirmation();
+}));
 elements.saveSettingsButton.addEventListener("click", () => {
   if (saveSettings()) {
     renderUsageSettings();
@@ -883,6 +937,7 @@ elements.resetSettingsButton.addEventListener("click", () => {
   if (!window.confirm("利用設定を初期値に戻しますか？\n保存履歴と連絡状況は削除されません。")) return;
   usageSettings = { ...DEFAULT_USAGE_SETTINGS };
   renderUsageSettings();
+  elements.weekdayDurationDetails.open = false;
   if (saveSettings()) {
     selectedDates.clear();
     selectedDateDurations = {};
@@ -902,7 +957,6 @@ elements.calendar.addEventListener("click", (event) => {
     delete selectedDateDurations[date];
   } else {
     selectedDates.add(date);
-    setSelectedDateDuration(date, getDurationHours());
   }
   renderCalendar();
   updateConfirmation();
@@ -916,7 +970,6 @@ elements.selectRegularWeekdaysButton.addEventListener("click", () => {
   dates.forEach((date) => {
     if (selectedDates.has(date)) return;
     selectedDates.add(date);
-    setSelectedDateDuration(date, getDurationHours());
   });
   renderCalendar();
   updateConfirmation();
@@ -934,7 +987,8 @@ elements.clearSelectionButton.addEventListener("click", () => {
 elements.selectedDates.addEventListener("change", (event) => {
   const durationSelect = event.target.closest(".date-duration-select");
   if (!durationSelect) return;
-  setSelectedDateDuration(durationSelect.dataset.date, Number(durationSelect.value));
+  if (durationSelect.value === "") delete selectedDateDurations[durationSelect.dataset.date];
+  else setSelectedDateDuration(durationSelect.dataset.date, Number(durationSelect.value));
   updateConfirmation();
 });
 elements.copyButton.addEventListener("click", copyMessage);

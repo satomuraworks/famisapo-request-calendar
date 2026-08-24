@@ -1,8 +1,9 @@
-import { formatJapaneseDate } from "./date-utils.js";
+import { formatJapaneseDate, fromIsoDate, japaneseHolidayDates } from "./date-utils.js";
 
 export const HISTORY_STORAGE_KEY = "famisapo-request-calendar.history.v1";
 export const SETTINGS_STORAGE_KEY = "famisapo-request-calendar.settings.v1";
 export const SEND_STATUS_STORAGE_KEY = "famisapo-request-calendar.send-status.v1";
+export const WEEKDAY_DURATION_KEYS = Object.freeze(["0", "1", "2", "3", "4", "5", "6", "holiday"]);
 export const APP_STORAGE_KEYS = Object.freeze([
   HISTORY_STORAGE_KEY,
   SETTINGS_STORAGE_KEY,
@@ -15,6 +16,7 @@ export const DEFAULT_USAGE_SETTINGS = Object.freeze({
   additionalChildFee: 0,
   transportFee: 0,
   durationHours: 1,
+  weekdayDurationHours: {},
   regularWeekdays: [],
   regularHolidays: false,
 });
@@ -27,6 +29,16 @@ function normalizeNonNegativeInteger(value, fallback = 0) {
 export function normalizeDurationHours(value, fallback = DEFAULT_USAGE_SETTINGS.durationHours) {
   const duration = typeof value === "number" ? value : Number(value);
   return Number.isFinite(duration) && duration >= 0.5 && duration <= 24 && Number.isInteger(duration * 2) ? duration : fallback;
+}
+
+export function normalizeWeekdayDurationHours(weekdayDurationHours) {
+  const rawDurations = weekdayDurationHours && typeof weekdayDurationHours === "object" && !Array.isArray(weekdayDurationHours)
+    ? weekdayDurationHours
+    : {};
+  return Object.fromEntries(WEEKDAY_DURATION_KEYS.flatMap((key) => {
+    const durationHours = normalizeDurationHours(rawDurations[key], null);
+    return durationHours === null ? [] : [[key, durationHours]];
+  }));
 }
 
 export function normalizeUsageSettings(settings) {
@@ -43,9 +55,20 @@ export function normalizeUsageSettings(settings) {
     additionalChildFee: normalizeNonNegativeInteger(settings?.additionalChildFee, DEFAULT_USAGE_SETTINGS.additionalChildFee),
     transportFee: normalizeNonNegativeInteger(settings?.transportFee, DEFAULT_USAGE_SETTINGS.transportFee),
     durationHours: normalizeDurationHours(settings?.durationHours),
+    weekdayDurationHours: normalizeWeekdayDurationHours(settings?.weekdayDurationHours),
     regularWeekdays: [...new Set(rawWeekdays)].sort((a, b) => a - b),
     regularHolidays,
   };
+}
+
+export function durationHoursForDate(isoDate, settings = DEFAULT_USAGE_SETTINGS) {
+  const normalized = normalizeUsageSettings(settings);
+  const date = fromIsoDate(isoDate);
+  const weekdayKey = String(date.getDay());
+  const holidayKey = japaneseHolidayDates(date.getFullYear()).has(isoDate) ? "holiday" : weekdayKey;
+  return normalized.weekdayDurationHours[holidayKey]
+    ?? normalized.weekdayDurationHours[weekdayKey]
+    ?? normalized.durationHours;
 }
 
 export function calculatePricePerVisit(settings = DEFAULT_USAGE_SETTINGS) {
@@ -92,10 +115,21 @@ export function formatYen(amount) {
   return new Intl.NumberFormat("ja-JP").format(amount);
 }
 
-export function makeLineMessage(year, monthIndex, selectedDates) {
+export function formatDuration(hours) {
+  const totalMinutes = Math.round(hours * 60);
+  const wholeHours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (!wholeHours) return `${minutes}分`;
+  return minutes ? `${wholeHours}時間${minutes}分` : `${wholeHours}時間`;
+}
+
+export function makeLineMessage(year, monthIndex, selectedDates, durationHoursByDate = {}) {
   const dates = [...selectedDates].sort();
   if (!dates.length) return "依頼日を選択してください。";
-  return `${year}年${monthIndex + 1}月のファミサポ依頼日についてご連絡します。\n\n${dates.map((date) => formatJapaneseDate(date)).join("\n")}\n\n以上の${dates.length}日間をお願いいたします。\n確認用の画像も添付します。\nご確認よろしくお願いいたします。`;
+  return `${year}年${monthIndex + 1}月のファミサポ依頼日についてご連絡します。\n\n${dates.map((date) => {
+    const durationHours = normalizeDurationHours(durationHoursByDate[date], null);
+    return durationHours === null ? formatJapaneseDate(date) : `${formatJapaneseDate(date)}　${formatDuration(durationHours)}`;
+  }).join("\n")}\n\n以上の${dates.length}日間をお願いいたします。\n確認用の画像も添付します。\nご確認よろしくお願いいたします。`;
 }
 
 export function normalizeSendStatus(status) {
