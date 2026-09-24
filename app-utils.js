@@ -111,6 +111,20 @@ export function calculateEstimateForDurations(durationHoursList, settings = DEFA
   return durationHoursList.reduce((total, durationHours) => total + calculateEstimate(1, settings, durationHours), 0);
 }
 
+export function calculateEstimateForDates(dates, durationHoursByDate, childrenCountByDate, settings = DEFAULT_USAGE_SETTINGS) {
+  if (!Array.isArray(dates)) return 0;
+  const normalized = normalizeUsageSettings(settings);
+  return dates.reduce((total, date) => {
+    const childrenCount = Math.min(normalized.childrenCount, normalizeChildrenCount(childrenCountByDate?.[date], normalized.childrenCount));
+    return total + calculateEstimate(1, { ...normalized, childrenCount }, durationHoursByDate?.[date]);
+  }, 0);
+}
+
+export function normalizeChildrenCount(value, fallback = DEFAULT_USAGE_SETTINGS.childrenCount) {
+  const count = Number(value);
+  return Number.isInteger(count) && count >= 1 && count <= 10 ? count : fallback;
+}
+
 export function formatYen(amount) {
   return new Intl.NumberFormat("ja-JP").format(amount);
 }

@@ -7,7 +7,7 @@ import {
 } from "./date-utils.js?v=20260723-holiday-selection";
 import {
   clearAppStorage,
-  calculateEstimateForDurations,
+  calculateEstimateForDates,
   calculatePricePerVisit,
   DEFAULT_USAGE_SETTINGS,
   durationHoursForDate,
@@ -19,12 +19,13 @@ import {
   makePriceBreakdown,
   normalizeSendStatus,
   normalizeDurationHours,
+  normalizeChildrenCount,
   normalizeUsageSettings,
   SEND_STATUS_STORAGE_KEY,
   sendStatusLabel,
   SETTINGS_STORAGE_KEY,
   WEEKDAY_DURATION_KEYS,
-} from "./app-utils.js?v=20260824-weekday-durations";
+} from "./app-utils.js?v=20260924-partial-children";
 import {
   disableAnalytics,
   getAnalyticsConsent,
@@ -32,7 +33,7 @@ import {
   saveAnalyticsConsent,
   trackAnalyticsEvent,
 } from "./analytics.js?v=20260824-weekday-durations";
-import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260824-weekday-durations";
+import { APP_UPDATED_AT, APP_VERSION } from "./version.js?v=20260924-partial-children";
 import { initializeProviderMode } from "./provider.js?v=20260825-provider-member-settlements";
 
 const elements = {
@@ -64,6 +65,7 @@ const elements = {
   pricePerVisit: document.querySelector("#price-per-visit"),
   message: document.querySelector("#line-message"),
   includeDurationInMessage: document.querySelector("#include-duration-in-message"),
+  includeDurationInImage: document.querySelector("#include-duration-in-image"),
   copyButton: document.querySelector("#copy-button"),
   copyStatus: document.querySelector("#copy-status"),
   imageLayout: document.querySelectorAll("input[name='image-layout']"),
@@ -107,6 +109,7 @@ const elements = {
 
 let selectedDates = new Set();
 let selectedDateDurations = {};
+let selectedDateChildrenCounts = {};
 let imageIsCurrent = false;
 let storageAvailable = true;
 let historyEntries = [];
@@ -251,6 +254,19 @@ function selectedDateDurationMap(dates = sortedSelection(), settings = getCurren
   return Object.fromEntries(dates.map((date) => [date, getSelectedDateDuration(date, settings)]));
 }
 
+function getSelectedDateChildrenCount(date, settings = getCurrentUsageSettings()) {
+  return Math.min(settings.childrenCount, normalizeChildrenCount(selectedDateChildrenCounts[date], settings.childrenCount));
+}
+
+function selectedDateChildrenCountMap(dates = sortedSelection(), settings = getCurrentUsageSettings()) {
+  return Object.fromEntries(dates.map((date) => [date, getSelectedDateChildrenCount(date, settings)]));
+}
+
+function normalizeDateChildrenCounts(dates, childrenCounts, fallback) {
+  const rawCounts = childrenCounts && typeof childrenCounts === "object" && !Array.isArray(childrenCounts) ? childrenCounts : {};
+  return Object.fromEntries(dates.map((date) => [date, normalizeChildrenCount(rawCounts[date], fallback)]));
+}
+
 function normalizeDateDurations(dates, durations, fallback = DEFAULT_USAGE_SETTINGS.durationHours) {
   const rawDurations = durations && typeof durations === "object" && !Array.isArray(durations) ? durations : {};
   return Object.fromEntries(dates.map((date) => [date, normalizeDurationHours(rawDurations[date], fallback)]));
@@ -327,9 +343,7 @@ function renderWeekdayDurationSummary(settings = getCurrentUsageSettings()) {
 }
 
 function renderUsageSettings() {
-  elements.childrenCount.textContent = `${usageSettings.childrenCount}人`;
-  elements.childrenDecrease.disabled = usageSettings.childrenCount <= 1;
-  elements.childrenIncrease.disabled = usageSettings.childrenCount >= 10;
+  renderChildrenCount();
   elements.firstChildFee.value = usageSettings.firstChildFee;
   elements.additionalChildFee.value = usageSettings.additionalChildFee;
   elements.transportFee.value = usageSettings.transportFee;
@@ -341,6 +355,12 @@ function renderUsageSettings() {
   const regularWeekdays = new Set(usageSettings.regularWeekdays);
   elements.regularWeekdays.forEach((input) => { input.checked = regularWeekdays.has(Number(input.value)); });
   elements.regularHoliday.checked = usageSettings.regularHolidays;
+}
+
+function renderChildrenCount() {
+  elements.childrenCount.textContent = `${usageSettings.childrenCount}人`;
+  elements.childrenDecrease.disabled = usageSettings.childrenCount <= 1;
+  elements.childrenIncrease.disabled = usageSettings.childrenCount >= 10;
 }
 
 function loadSettings() {
@@ -425,6 +445,8 @@ function loadHistory() {
       .map((entry) => ({
         ...entry,
         durationHoursByDate: normalizeDateDurations(entry.dates, entry.durationHoursByDate),
+        childrenCount: normalizeChildrenCount(entry.childrenCount, usageSettings.childrenCount),
+        childrenCountByDate: normalizeDateChildrenCounts(entry.dates, entry.childrenCountByDate, normalizeChildrenCount(entry.childrenCount, usageSettings.childrenCount)),
         sendStatus: normalizeSendStatus(entry.sendStatus),
       }))
       .sort((a, b) => b.savedAt.localeCompare(a.savedAt))
@@ -476,7 +498,7 @@ function updateConfirmation() {
       item.append(label);
       elements.selectedDates.append(item);
 
-      const durationItem = document.createElement("label");
+      const durationItem = document.createElement("div");
       durationItem.className = "date-duration";
       const durationDate = document.createElement("span");
       durationDate.textContent = formatJapaneseDate(date);
@@ -493,7 +515,21 @@ function updateConfirmation() {
         `自動（${formatDuration(effectiveDurationHours)}）`,
       );
       durationLabel.append(durationSelect);
-      durationItem.append(durationDate, durationLabel);
+      const childrenLabel = document.createElement("label");
+      childrenLabel.textContent = "子どもの人数";
+      const childrenSelect = document.createElement("select");
+      childrenSelect.className = "date-children-select";
+      childrenSelect.dataset.date = date;
+      const effectiveChildrenCount = getSelectedDateChildrenCount(date);
+      for (let count = 1; count <= getCurrentUsageSettings().childrenCount; count += 1) {
+        const option = document.createElement("option");
+        option.value = String(count);
+        option.textContent = `${count}人${count === getCurrentUsageSettings().childrenCount ? "（全員）" : "（一部のみ）"}`;
+        option.selected = count === effectiveChildrenCount;
+        childrenSelect.append(option);
+      }
+      childrenLabel.append(childrenSelect);
+      durationItem.append(durationDate, durationLabel, childrenLabel);
       elements.dateDurationList.append(durationItem);
     });
   }
@@ -505,12 +541,13 @@ function updateConfirmation() {
     }).join("、")}`
     : "日付を選んでください。";
   const settings = getCurrentUsageSettings();
-  const perHour = calculatePricePerVisit(settings);
   const durationHoursByDate = selectedDateDurationMap(dates, settings);
+  const childrenCountByDate = selectedDateChildrenCountMap(dates, settings);
   const durationHours = dates.map((date) => durationHoursByDate[date]);
   const totalDurationHours = durationHours.reduce((total, duration) => total + duration, 0);
-  const hourlyUsageFee = perHour - settings.transportFee;
-  elements.cost.textContent = `${count}回（利用料金${formatYen(hourlyUsageFee)}円 × 合計${formatDuration(totalDurationHours)} ＋ 交通費${formatYen(settings.transportFee)}円 × ${count}回） = ${formatYen(calculateEstimateForDurations(durationHours, settings))}円`;
+  const estimate = calculateEstimateForDates(dates, durationHoursByDate, childrenCountByDate, settings);
+  const usageFee = estimate - settings.transportFee * count;
+  elements.cost.textContent = `${count}回（利用料金${formatYen(usageFee)}円・合計${formatDuration(totalDurationHours)} ＋ 交通費${formatYen(settings.transportFee)}円 × ${count}回） = ${formatYen(estimate)}円`;
   updateLineMessage(dates, durationHoursByDate);
   elements.copyButton.disabled = count === 0;
   elements.generateButton.disabled = count === 0;
@@ -559,6 +596,7 @@ function setMonth(resetSelection = true) {
   if (resetSelection) {
     selectedDates = new Set();
     selectedDateDurations = {};
+    selectedDateChildrenCounts = {};
   }
   imageIsCurrent = false;
   elements.previewWrap.hidden = true;
@@ -613,6 +651,8 @@ function saveCurrentHistory() {
     month,
     dates,
     durationHoursByDate: selectedDateDurationMap(dates),
+    childrenCountByDate: selectedDateChildrenCountMap(dates),
+    childrenCount: getCurrentUsageSettings().childrenCount,
     count: dates.length,
     sendStatus: getCurrentSendStatus(),
     savedAt: new Date().toISOString(),
@@ -629,8 +669,12 @@ function restoreHistory(month) {
   const entry = historyEntries.find((saved) => saved.month === month);
   if (!entry) return;
   elements.month.value = entry.month;
+  usageSettings.childrenCount = entry.childrenCount;
+  renderChildrenCount();
+  renderPriceBreakdown();
   selectedDates = new Set(entry.dates);
   selectedDateDurations = normalizeDateDurations(entry.dates, entry.durationHoursByDate, getDurationHours());
+  selectedDateChildrenCounts = normalizeDateChildrenCounts(entry.dates, entry.childrenCountByDate, normalizeChildrenCount(entry.childrenCount, getCurrentUsageSettings().childrenCount));
   sendStatuses[entry.month] = normalizeSendStatus(entry.sendStatus);
   saveSendStatuses();
   imageIsCurrent = false;
@@ -810,32 +854,36 @@ function drawImageFooter(ctx, count) {
   drawTextCentered(ctx, "ご確認よろしくお願いいたします。", 1315, "400 32px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", "#444");
 }
 
-function drawDateWithDuration(ctx, date, durationHoursByDate, y, font, x = 540) {
+function drawDateDetails(ctx, date, durationHoursByDate, childrenCountByDate, totalChildrenCount, includeDuration, y, font, x = 540) {
   const dateText = formatJapaneseDate(date);
-  const durationText = formatDuration(durationHoursByDate[date]);
+  const durationText = includeDuration ? formatDuration(durationHoursByDate[date]) : "";
+  const partialText = childrenCountByDate[date] < totalChildrenCount ? "※一部のみ" : "";
   const gap = "　";
   ctx.font = font;
-  const width = ctx.measureText(dateText).width + ctx.measureText(gap).width + ctx.measureText(durationText).width;
+  const restText = [durationText, partialText].filter(Boolean).join(gap);
+  const width = ctx.measureText(dateText + (restText ? gap + restText : "")).width;
   const left = x - width / 2;
   ctx.textAlign = "left";
   ctx.fillStyle = "#c92a2a";
   ctx.fillText(dateText, left, y);
-  ctx.fillStyle = "#171717";
-  ctx.fillText(durationText, left + ctx.measureText(dateText + gap).width, y);
+  if (restText) {
+    ctx.fillStyle = "#171717";
+    ctx.fillText(restText, left + ctx.measureText(dateText + gap).width, y);
+  }
 }
 
-function drawListOnly(ctx, dates, durationHoursByDate) {
+function drawListOnly(ctx, dates, durationHoursByDate, childrenCountByDate, totalChildrenCount, includeDuration) {
   const listTop = 365;
   const listHeight = 695;
   const lineHeight = Math.min(76, listHeight / dates.length);
   const fontSize = Math.min(40, Math.max(17, Math.floor(lineHeight * 0.68)));
   const startY = listTop + ((listHeight - lineHeight * dates.length) / 2) + lineHeight * 0.72;
   dates.forEach((date, index) => {
-    drawDateWithDuration(ctx, date, durationHoursByDate, startY + lineHeight * index, `700 ${fontSize}px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif`);
+    drawDateDetails(ctx, date, durationHoursByDate, childrenCountByDate, totalChildrenCount, includeDuration, startY + lineHeight * index, `700 ${fontSize}px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif`);
   });
 }
 
-function drawSmallCalendar(ctx, year, monthIndex, dates) {
+function drawSmallCalendar(ctx, year, monthIndex, dates, childrenCountByDate, totalChildrenCount) {
   const monthDates = getMonthDates(year, monthIndex);
   const selected = new Set(dates);
   const startX = 120;
@@ -867,9 +915,10 @@ function drawSmallCalendar(ctx, year, monthIndex, dates) {
     const x = startX + column * cellWidth + cellWidth / 2;
     const y = startY + headerHeight + row * rowHeight + 32;
     if (selected.has(isoDate)) {
-      ctx.fillStyle = "#c92a2a";
+      const partial = childrenCountByDate[isoDate] < totalChildrenCount;
+      ctx.fillStyle = partial ? "#f5b9b9" : "#c92a2a";
       ctx.beginPath(); ctx.arc(x, y - 8, 19, 0, Math.PI * 2); ctx.fill();
-      drawTextCentered(ctx, String(day), y, "700 25px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", "#ffffff", x);
+      drawTextCentered(ctx, String(day), y, "700 25px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", partial ? "#7d1b1b" : "#ffffff", x);
     } else {
       const color = weekday === 0 ? "#c92a2a" : weekday === 6 ? "#3d5c9d" : "#444";
       drawTextCentered(ctx, String(day), y, "600 25px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", color, x);
@@ -878,7 +927,7 @@ function drawSmallCalendar(ctx, year, monthIndex, dates) {
   return calendarBottom;
 }
 
-function drawListWithCalendar(ctx, dates, durationHoursByDate, listTop) {
+function drawListWithCalendar(ctx, dates, durationHoursByDate, childrenCountByDate, totalChildrenCount, includeDuration, listTop) {
   const columns = 2;
   const rows = Math.ceil(dates.length / columns);
   const listHeight = 360;
@@ -888,7 +937,7 @@ function drawListWithCalendar(ctx, dates, durationHoursByDate, listTop) {
     const column = Math.floor(index / rows);
     const row = index % rows;
     const x = column === 0 ? 330 : 750;
-    drawDateWithDuration(ctx, date, durationHoursByDate, listTop + 30 + row * lineHeight, `700 ${fontSize}px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif`, x);
+    drawDateDetails(ctx, date, durationHoursByDate, childrenCountByDate, totalChildrenCount, includeDuration, listTop + 30 + row * lineHeight, `700 ${fontSize}px -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif`, x);
   });
 }
 
@@ -896,14 +945,17 @@ function drawImage() {
   const dates = sortedSelection();
   if (!dates.length) return;
   const durationHoursByDate = selectedDateDurationMap(dates);
+  const settings = getCurrentUsageSettings();
+  const childrenCountByDate = selectedDateChildrenCountMap(dates, settings);
+  const includeDuration = elements.includeDurationInImage.checked;
   const { year, monthIndex } = getSelectedMonth();
   const ctx = elements.canvas.getContext("2d");
   drawImageHeader(ctx, year, monthIndex);
   if (getImageLayout() === "calendar") {
-    const calendarBottom = drawSmallCalendar(ctx, year, monthIndex, dates);
-    drawListWithCalendar(ctx, dates, durationHoursByDate, Math.max(740, calendarBottom + 70));
+    const calendarBottom = drawSmallCalendar(ctx, year, monthIndex, dates, childrenCountByDate, settings.childrenCount);
+    drawListWithCalendar(ctx, dates, durationHoursByDate, childrenCountByDate, settings.childrenCount, includeDuration, Math.max(740, calendarBottom + 70));
   } else {
-    drawListOnly(ctx, dates, durationHoursByDate);
+    drawListOnly(ctx, dates, durationHoursByDate, childrenCountByDate, settings.childrenCount, includeDuration);
   }
   drawImageFooter(ctx, dates.length);
 }
@@ -959,13 +1011,13 @@ elements.requesterModeTab.addEventListener("click", () => setAppMode("requester"
 elements.providerModeTab.addEventListener("click", () => setAppMode("provider"));
 elements.childrenDecrease.addEventListener("click", () => {
   usageSettings.childrenCount = Math.max(1, usageSettings.childrenCount - 1);
-  renderUsageSettings();
+  renderChildrenCount();
   renderPriceBreakdown();
   updateConfirmation();
 });
 elements.childrenIncrease.addEventListener("click", () => {
   usageSettings.childrenCount = Math.min(10, usageSettings.childrenCount + 1);
-  renderUsageSettings();
+  renderChildrenCount();
   renderPriceBreakdown();
   updateConfirmation();
 });
@@ -1001,6 +1053,7 @@ elements.resetSettingsButton.addEventListener("click", () => {
   if (saveSettings()) {
     selectedDates.clear();
     selectedDateDurations = {};
+    selectedDateChildrenCounts = {};
     renderCalendar();
     renderPriceBreakdown();
     updateConfirmation();
@@ -1015,6 +1068,7 @@ elements.calendar.addEventListener("click", (event) => {
   if (selectedDates.has(date)) {
     selectedDates.delete(date);
     delete selectedDateDurations[date];
+    delete selectedDateChildrenCounts[date];
   } else {
     selectedDates.add(date);
   }
@@ -1042,6 +1096,7 @@ elements.clearSelectionButton.addEventListener("click", () => {
   if (!selectedDates.size) return;
   selectedDates.clear();
   selectedDateDurations = {};
+  selectedDateChildrenCounts = {};
   elements.dateDurationDetails.open = false;
   renderCalendar();
   updateConfirmation();
@@ -1049,9 +1104,15 @@ elements.clearSelectionButton.addEventListener("click", () => {
 });
 elements.dateDurationList.addEventListener("change", (event) => {
   const durationSelect = event.target.closest(".date-duration-select");
-  if (!durationSelect) return;
-  if (durationSelect.value === "") delete selectedDateDurations[durationSelect.dataset.date];
-  else setSelectedDateDuration(durationSelect.dataset.date, Number(durationSelect.value));
+  const childrenSelect = event.target.closest(".date-children-select");
+  if (durationSelect) {
+    if (durationSelect.value === "") delete selectedDateDurations[durationSelect.dataset.date];
+    else setSelectedDateDuration(durationSelect.dataset.date, Number(durationSelect.value));
+  } else if (childrenSelect) {
+    const count = normalizeChildrenCount(Number(childrenSelect.value), getCurrentUsageSettings().childrenCount);
+    if (count === getCurrentUsageSettings().childrenCount) delete selectedDateChildrenCounts[childrenSelect.dataset.date];
+    else selectedDateChildrenCounts[childrenSelect.dataset.date] = count;
+  } else return;
   updateConfirmation();
 });
 elements.includeDurationInMessage.addEventListener("change", () => updateLineMessage());
@@ -1059,6 +1120,7 @@ elements.copyButton.addEventListener("click", copyMessage);
 elements.imageLayout.forEach((radio) => radio.addEventListener("change", () => {
   if (radio.checked) invalidateImage("画像形式が変わりました。内容を確認して再生成してください。");
 }));
+elements.includeDurationInImage.addEventListener("change", () => invalidateImage("画像の表示設定が変わりました。再生成してください。"));
 elements.generateButton.addEventListener("click", () => {
   drawImage();
   imageIsCurrent = true;

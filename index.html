@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <title>ファミサポ予定づくり</title>
-    <link rel="stylesheet" href="styles.css?v=20260825-provider-member-settlements" />
+    <link rel="stylesheet" href="styles.css?v=20260924-partial-children" />
   </head>
   <body>
     <p id="reset-complete-notice" class="reset-complete-notice" role="status" aria-live="polite" hidden></p>
@@ -75,7 +75,7 @@
             <label class="setting-field" for="duration-hours">
               <span class="setting-label">1回あたりの利用時間</span>
               <span class="yen-input"><select id="duration-hours" aria-describedby="duration-hint"></select>時間</span>
-              <small id="duration-hint">30分から24時間まで選べます。日付を選択した後は、日付ごとの利用時間を個別に変更できます。</small>
+              <small id="duration-hint">30分から24時間まで選べます。日付を選択した後は、日付ごとの利用時間と子どもの人数を変更できます。</small>
             </label>
 
             <details id="weekday-duration-details" class="weekday-duration-details">
@@ -150,7 +150,7 @@
         <p id="selection-summary" class="requester-selection-summary" aria-live="polite"></p>
         <ul id="selected-dates" class="selected-dates" aria-label="選択した依頼日"></ul>
         <details id="date-duration-details" class="date-duration-details" hidden>
-          <summary>日ごとの利用時間を変更する</summary>
+          <summary>日ごとの利用時間・子どもの人数を変更する</summary>
           <div id="date-duration-list" class="date-duration-list"></div>
         </details>
       </section>
@@ -194,6 +194,7 @@
           <label><input type="radio" name="image-layout" value="list" /> 一覧のみ</label>
           <label><input type="radio" name="image-layout" value="calendar" checked /> カレンダー付き</label>
         </fieldset>
+        <label class="image-duration-toggle"><input id="include-duration-in-image" type="checkbox" checked />予定画像に利用時間を表示する</label>
         <button id="generate-button" class="button primary full" type="button">内容を確認して予定画像を作成</button>
         <p id="image-status" class="status" aria-live="polite"></p>
         <div id="image-preview-wrap" class="image-preview-wrap" hidden>
@@ -369,6 +370,6 @@
       <p id="app-version"></p>
       <p id="app-updated-at"></p>
     </footer>
-    <script type="module" src="app.js?v=20260825-provider-member-settlements"></script>
+    <script type="module" src="app.js?v=20260924-partial-children"></script>
   </body>
 </html>
